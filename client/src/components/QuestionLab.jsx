@@ -81,7 +81,7 @@ export default function QuestionLab({
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/generate-optimized-question', {
+      const response = await fetch('/api/generate-optimized-question', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ export default function QuestionLab({
     setRefineResult(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/refine-question', {
+      const response = await fetch('/api/refine-question', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

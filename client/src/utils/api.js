@@ -1,7 +1,5 @@
 // API Utilities for Syllabus Analyzer
 
-const BACKEND_URL = 'http://localhost:3001';
-
 export async function analyzeSyllabus({
   syllabusText,
   classNotes,
@@ -29,7 +27,7 @@ export async function analyzeSyllabus({
     headers['x-api-key'] = apiKey;
   }
 
-  const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+  const response = await fetch('/api/analyze', {
     method: 'POST',
     headers,
     body: formData

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -774,6 +775,21 @@ ${instructions}
   } catch (error) {
     console.error('Error refining question:', error);
     res.status(500).json({ error: 'Failed to refine question. ' + error.message });
+  }
+});
+
+// Serve frontend static build if present
+app.use(express.static(path.join(__dirname, 'client', 'dist')));
+
+// Fallback to index.html for SPA client-side routes (non-API)
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    const indexPath = path.join(__dirname, 'client', 'dist', 'index.html');
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        res.status(200).send('Syllabus Analyzer API is running. Run npm run build in client to serve frontend.');
+      }
+    });
   }
 });
 

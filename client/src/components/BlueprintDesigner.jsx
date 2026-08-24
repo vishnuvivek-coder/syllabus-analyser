@@ -249,7 +249,7 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
     setGeneratedQuestion(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/generate-exam-blueprint', {
+      const response = await fetch('/api/generate-exam-blueprint', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +298,7 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
     }, 100);
 
     try {
-      const response = await fetch('http://localhost:3001/api/generate-question', {
+      const response = await fetch('/api/generate-question', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -347,7 +347,7 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
     setReviewResult(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/review-question', {
+      const response = await fetch('/api/review-question', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -436,7 +436,7 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
       setDraftingProgress(`Drafting Q${q.question_number}/${questionsList.length}: ${q.topic_name}...`);
 
       try {
-        const response = await fetch('http://localhost:3001/api/generate-question', {
+        const response = await fetch('/api/generate-question', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
