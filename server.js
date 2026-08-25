@@ -779,6 +779,11 @@ ${instructions}
   }
 });
 
+// Health check endpoint for Render and monitors
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Serve frontend static build if present
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
@@ -794,8 +799,16 @@ app.get('*', (req, res) => {
   }
 });
 
-const server = app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('[Unhandled Server Error]', err);
+  if (!res.headersSent) {
+    res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+  }
+});
+
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Server listening on port ${port} (0.0.0.0)`);
 });
 
 // Configure long timeouts for parsing large documents via AI
