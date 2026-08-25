@@ -75,13 +75,18 @@ app.use(express.json({ limit: '150mb' }));
 app.use(express.urlencoded({ limit: '150mb', extended: true }));
 
 async function generateWithFallback(apiKey, requestedModel, contents, systemInstruction, options = {}) {
+  // Normalize deprecated or legacy model names
+  let normalizedRequested = requestedModel || 'gemini-3.6-flash';
+  if (['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro'].includes(normalizedRequested)) {
+    normalizedRequested = 'gemini-3.6-flash';
+  }
+
   const fallbackModels = [
-    requestedModel || 'gemini-3.5-flash',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.5-pro',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro'
+    normalizedRequested,
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-pro-preview'
   ].filter((v, i, a) => v && a.indexOf(v) === i);
 
   let lastError = null;
@@ -103,15 +108,23 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
     } catch (err) {
       lastError = err;
       const msg = err.message || '';
-      if (msg.includes('429') || msg.includes('Quota exceeded') || msg.includes('Too Many Requests') || msg.includes('resource_exhausted')) {
-        console.warn(`[Quota Fallback 429] Model "${modelName}" hit rate limit/quota. Retrying with fallback model...`);
+      if (
+        msg.includes('429') || 
+        msg.includes('Quota exceeded') || 
+        msg.includes('Too Many Requests') || 
+        msg.includes('resource_exhausted') ||
+        msg.includes('404') ||
+        msg.includes('no longer available') ||
+        msg.includes('not found')
+      ) {
+        console.warn(`[Model Fallback] Model "${modelName}" failed (${msg.substring(0, 120)}). Retrying with next fallback model...`);
         continue;
       }
       throw err;
     }
   }
 
-  throw new Error(`API Rate Limit / Quota Exceeded (429): Daily free tier limit reached for requested Gemini models. Please wait a few moments, switch the model in Settings, or enter a custom API Key.`);
+  throw new Error(`AI Service Error: All available Gemini models (${fallbackModels.join(', ')}) were exhausted or reached rate limits. Please check your Gemini API key in Settings or try again shortly.`);
 }
 
 const upload = multer({
@@ -127,7 +140,7 @@ app.post('/api/analyze', upload.single('syllabusFile'), async (req, res) => {
     const learningOutcomes = req.body.learningOutcomes || '';
     const clientApiKey = req.headers['x-api-key'];
     
-    let modelName = req.body.modelName || 'gemini-3.5-flash';
+    let modelName = req.body.modelName || 'gemini-3.6-flash';
     let imagePart = null;
 
     // Handle file upload (PDF or Image)
@@ -280,7 +293,7 @@ app.post('/api/generate-exam-blueprint', async (req, res) => {
       difficultyDistribution,
       bloomDistribution,
       questionTypes,
-      modelName = 'gemini-3.5-flash'
+      modelName = 'gemini-3.6-flash'
     } = req.body;
 
     const clientApiKey = req.headers['x-api-key'];
@@ -393,7 +406,7 @@ app.post('/api/generate-question', async (req, res) => {
       bloomLevel,
       reasoningType,
       questionType,
-      modelName = 'gemini-3.5-flash'
+      modelName = 'gemini-3.6-flash'
     } = req.body;
 
     const clientApiKey = req.headers['x-api-key'];
@@ -402,12 +415,6 @@ app.post('/api/generate-question', async (req, res) => {
     if (!apiKey) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
-
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({
-      model: modelName,
-      generationConfig: { responseMimeType: 'application/json' }
-    });
 
     const systemPrompt = `You are an expert university examination question designer.
 Your task is to generate ONE detailed exam question based on the provided blueprint, syllabus context, and constraints.
@@ -498,7 +505,7 @@ app.post('/api/generate-optimized-question', async (req, res) => {
   try {
     const {
       topic,
-      modelName = 'gemini-3.5-flash'
+      modelName = 'gemini-3.6-flash'
     } = req.body;
 
     const clientApiKey = req.headers['x-api-key'];
@@ -507,12 +514,6 @@ app.post('/api/generate-optimized-question', async (req, res) => {
     if (!apiKey) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
-
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({
-      model: modelName,
-      generationConfig: { responseMimeType: 'application/json' }
-    });
 
     const systemPrompt = `You are a high-level assessment designer.
 
@@ -608,7 +609,7 @@ app.post('/api/review-question', async (req, res) => {
       question,
       answer,
       blueprint,
-      modelName = 'gemini-3.5-flash'
+      modelName = 'gemini-3.6-flash'
     } = req.body;
 
     const clientApiKey = req.headers['x-api-key'];
@@ -715,7 +716,7 @@ app.post('/api/refine-question', async (req, res) => {
       answer,
       instructions,
       topic,
-      modelName = 'gemini-3.5-flash'
+      modelName = 'gemini-3.6-flash'
     } = req.body;
 
     const clientApiKey = req.headers['x-api-key'];

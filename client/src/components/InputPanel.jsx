@@ -8,22 +8,22 @@ export default function InputPanel({ onAnalyze, isLoading, progress }) {
   const [learningOutcomes, setLearningOutcomes] = useState('');
   
   // Settings states & migration logic
-  let savedModel = localStorage.getItem('model_name') || 'gemini-3.5-flash';
-  if (['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-1.5-pro-latest'].includes(savedModel)) {
-    savedModel = 'gemini-3.5-flash';
-    localStorage.setItem('model_name', 'gemini-3.5-flash');
+  let savedModel = localStorage.getItem('model_name') || 'gemini-3.6-flash';
+  if (['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-1.5-pro-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro'].includes(savedModel)) {
+    savedModel = 'gemini-3.6-flash';
+    localStorage.setItem('model_name', 'gemini-3.6-flash');
   }
 
   const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [modelName, setModelName] = useState(savedModel);
   
   const [geminiSelection, setGeminiSelection] = useState(
-    ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.1-pro-preview'].includes(savedModel)
+    ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].includes(savedModel)
       ? savedModel
       : 'custom'
   );
   const [customModelInput, setCustomModelInput] = useState(
-    ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.1-pro-preview'].includes(savedModel)
+    ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview'].includes(savedModel)
       ? ''
       : savedModel
   );
@@ -163,9 +163,9 @@ export default function InputPanel({ onAnalyze, isLoading, progress }) {
               onChange={(e) => setGeminiSelection(e.target.value)}
               style={{ background: 'var(--bg-secondary)', marginBottom: geminiSelection === 'custom' ? '8px' : '0' }}
             >
-              <option value="gemini-3.5-flash">Gemini 3.5 Flash (Default)</option>
+              <option value="gemini-3.6-flash">Gemini 3.6 Flash (Recommended & Fast)</option>
+              <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
               <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
-              <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
               <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview</option>
               <option value="custom">-- Custom Model Name --</option>
             </select>
