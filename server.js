@@ -779,6 +779,96 @@ ${instructions}
   }
 });
 
+app.post('/api/generate-flashcards', async (req, res) => {
+  try {
+    const {
+      topicName,
+      moduleName,
+      syllabusContext,
+      count = 6,
+      modelName = 'gemini-3.6-flash'
+    } = req.body;
+
+    const clientApiKey = req.headers['x-api-key'];
+    const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
+    }
+
+    if (!topicName) {
+      return res.status(400).json({ error: 'topicName is required to generate flashcards.' });
+    }
+
+    const systemPrompt = `You are an expert pedagogical test designer and active-recall specialist.
+Your task is to generate a comprehensive, high-yield Flashcard Study Deck for the given academic topic.
+
+Generate exactly ${count} distinct, high-impact flashcards covering:
+1. Core Definition & First-Principles Intuition (type: "concept")
+2. Mathematical Formula, Equations & Notation with variable meanings (type: "formula")
+3. Comparative Distinction vs Adjacent / Confusing Concepts (type: "comparison")
+4. Practical Real-World / Engineering Application Scenario (type: "application")
+5. Common Exam Pitfall, Counter-Example or Misconception (type: "pitfall")
+6. Key Algorithm Steps, Theorem or Deep Synthesis (type: "deep-dive")
+
+MATHEMATICAL FORMATTING — STRICT RULES:
+- ALL equations, formulas, powers, fractions, and symbols MUST be wrapped in standard LaTeX delimiters: $...$ for inline or $$...$$ for display equations.
+- NEVER use escaped dollars like \\$. Use clean $...$ or $$...$$.
+- Never write bare commands like \\lambda or \\implies outside of dollar delimiters.
+
+Format the output strictly as JSON following this structure:
+{
+  "topic_name": "${topicName}",
+  "module_name": "${moduleName || 'Curriculum'}",
+  "summary": "1-2 sentence high-level overview of the topic for quick recall",
+  "cards": [
+    {
+      "id": "card_1",
+      "type": "concept",
+      "category_label": "Core Definition",
+      "title": "Short descriptive title of this card",
+      "front": "Clear active-recall prompt or conceptual challenge question",
+      "back": "Detailed, highly educational answer with formatted LaTeX formulas where relevant, clear steps, and key mechanisms.",
+      "key_takeaway": "One-sentence high-impact punchline summary",
+      "difficulty": "Easy",
+      "tags": ["Core Concept", "Foundational"]
+    }
+  ]
+}`;
+
+    const inputData = `
+--- TOPIC SPECIFICATION ---
+TOPIC: ${topicName}
+MODULE: ${moduleName || 'General'}
+
+--- SYLLABUS CONTEXT ---
+${typeof syllabusContext === 'object' ? JSON.stringify(syllabusContext, null, 2) : syllabusContext || 'None'}
+`;
+
+    const { response } = await generateWithFallback(
+      apiKey,
+      modelName,
+      [{ role: 'user', parts: [{ text: inputData }] }],
+      systemPrompt,
+      { timeout: 300000 }
+    );
+
+    const responseText = response.text();
+    let parsedData;
+    try {
+      parsedData = robustJSONParse(responseText);
+    } catch (parseErr) {
+      console.error('Failed to parse flashcard generator response as JSON:', responseText);
+      throw new Error('Flashcard generator returned invalid JSON formatting. Please try again.');
+    }
+
+    res.json(parsedData);
+  } catch (error) {
+    console.error('Error generating flashcards:', error);
+    res.status(500).json({ error: 'Failed to generate flashcards. ' + error.message });
+  }
+});
+
 // Health check endpoint for Render and monitors
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

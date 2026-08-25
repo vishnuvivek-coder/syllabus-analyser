@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-export default function KnowledgeGraph({ data, onForwardToLab }) {
+export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashcards }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
 
@@ -511,6 +511,16 @@ export default function KnowledgeGraph({ data, onForwardToLab }) {
                 style={{ width: '100%', padding: '9px', fontSize: '0.8rem', marginTop: '4px' }}
               >
                 Draft Optimized Question
+              </button>
+            )}
+
+            {onForwardToFlashcards && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => onForwardToFlashcards(activeTopic.topic_name)}
+                style={{ width: '100%', padding: '8px', fontSize: '0.8rem', color: 'var(--color-primary)' }}
+              >
+                🗂️ Study Topic Flashcards
               </button>
             )}
           </div>

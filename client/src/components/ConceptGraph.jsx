@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-export default function ConceptGraph({ data, onForwardToLab }) {
+export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcards }) {
   const [selectedConcept, setSelectedConcept] = useState(null);
   const [hoveredConcept, setHoveredConcept] = useState(null);
 
@@ -409,6 +409,16 @@ export default function ConceptGraph({ data, onForwardToLab }) {
                   style={{ width: '100%', padding: '10px', fontSize: '0.8rem', marginTop: '8px' }}
                 >
                   Draft Optimized Question
+                </button>
+              )}
+
+              {onForwardToFlashcards && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => onForwardToFlashcards(activeConcept.name)}
+                  style={{ width: '100%', padding: '8px', fontSize: '0.8rem', marginTop: '6px', color: 'var(--color-primary)' }}
+                >
+                  🗂️ Study Topic Flashcards
                 </button>
               )}
             </div>

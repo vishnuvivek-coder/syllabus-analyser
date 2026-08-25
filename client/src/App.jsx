@@ -4,6 +4,7 @@ import KnowledgeGraph from './components/KnowledgeGraph';
 import ConceptGraph from './components/ConceptGraph';
 import BlueprintDesigner from './components/BlueprintDesigner';
 import QuestionLab from './components/QuestionLab';
+import FlashcardDeck from './components/FlashcardDeck';
 import ModuleList from './components/ModuleList';
 import Analytics from './components/Analytics';
 import { analyzeSyllabus } from './utils/api';
@@ -16,6 +17,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [initialLabTopic, setInitialLabTopic] = useState('');
+  const [initialFlashcardTopic, setInitialFlashcardTopic] = useState('');
   
   // Persistent Question Storage
   const [savedQuestions, setSavedQuestions] = useState([]);
@@ -102,10 +104,16 @@ export default function App() {
     setActiveTab('lab');
   };
 
+  const handleForwardToFlashcards = (topicName) => {
+    setInitialFlashcardTopic(topicName);
+    setActiveTab('flashcards');
+  };
+
   const handleResetAnalysis = () => {
     setData(null);
     setError(null);
     setInitialLabTopic('');
+    setInitialFlashcardTopic('');
     setSavedQuestions([]);
     setIncomingLabQuestion(null);
   };
@@ -396,42 +404,49 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab('graph')} 
                 className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', flex: 1, minWidth: '120px' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
               >
                 Knowledge Map
               </button>
               <button 
                 onClick={() => setActiveTab('concepts')} 
                 className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', flex: 1, minWidth: '120px' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
               >
                 Concept Graph
               </button>
               <button 
                 onClick={() => setActiveTab('blueprint')} 
                 className={`btn ${activeTab === 'blueprint' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', flex: 1, minWidth: '120px' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
               >
                 Exam Designer
               </button>
               <button 
                 onClick={() => setActiveTab('lab')} 
                 className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', flex: 1, minWidth: '120px' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
               >
                 Question Lab
               </button>
               <button 
+                onClick={() => setActiveTab('flashcards')} 
+                className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <span>🗂️ Flashcards</span>
+              </button>
+              <button 
                 onClick={() => setActiveTab('modules')} 
                 className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', flex: 1, minWidth: '120px' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
               >
                 Curriculum Hub
               </button>
               <button 
                 onClick={() => setActiveTab('analytics')} 
                 className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', flex: 1, minWidth: '120px' }}
+                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
               >
                 Taxonomy Analytics
               </button>
@@ -440,16 +455,24 @@ export default function App() {
             {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
             <div style={{ flex: '1', minHeight: '0', position: 'relative' }}>
               <div style={{ display: activeTab === 'graph' ? 'block' : 'none', height: '100%' }}>
-                <KnowledgeGraph data={data} onForwardToLab={handleForwardToLab} />
+                <KnowledgeGraph 
+                  data={data} 
+                  onForwardToLab={handleForwardToLab} 
+                  onForwardToFlashcards={handleForwardToFlashcards}
+                />
               </div>
               <div style={{ display: activeTab === 'concepts' ? 'block' : 'none', height: '100%' }}>
-                <ConceptGraph data={data} onForwardToLab={handleForwardToLab} />
+                <ConceptGraph 
+                  data={data} 
+                  onForwardToLab={handleForwardToLab} 
+                  onForwardToFlashcards={handleForwardToFlashcards}
+                />
               </div>
               <div style={{ display: activeTab === 'blueprint' ? 'block' : 'none', height: '100%' }}>
                 <BlueprintDesigner 
                   syllabusData={data} 
                   apiKey={localStorage.getItem('gemini_api_key')} 
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.5-flash'} 
+                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
                   onSendToLab={handleSendQuestionToLab}
                   onSaveToBank={handleSaveQuestionToBank}
                 />
@@ -458,7 +481,7 @@ export default function App() {
                 <QuestionLab 
                   syllabusData={data} 
                   apiKey={localStorage.getItem('gemini_api_key')} 
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.5-flash'} 
+                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
                   initialTopic={initialLabTopic} 
                   onClearInitialTopic={() => setInitialLabTopic('')}
                   incomingQuestion={incomingLabQuestion}
@@ -467,8 +490,20 @@ export default function App() {
                   onRemoveFromBank={handleRemoveQuestionFromBank}
                 />
               </div>
+              <div style={{ display: activeTab === 'flashcards' ? 'block' : 'none', height: '100%' }}>
+                <FlashcardDeck 
+                  syllabusData={data} 
+                  apiKey={localStorage.getItem('gemini_api_key')} 
+                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
+                  initialTopic={initialFlashcardTopic}
+                  onClearInitialTopic={() => setInitialFlashcardTopic('')}
+                />
+              </div>
               <div style={{ display: activeTab === 'modules' ? 'block' : 'none', height: '100%' }}>
-                <ModuleList data={data} />
+                <ModuleList 
+                  data={data} 
+                  onForwardToFlashcards={handleForwardToFlashcards}
+                />
               </div>
               <div style={{ display: activeTab === 'analytics' ? 'block' : 'none', height: '100%' }}>
                 <Analytics data={data} />

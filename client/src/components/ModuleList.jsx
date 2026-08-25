@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function ModuleList({ data }) {
+export default function ModuleList({ data, onForwardToFlashcards }) {
   const [expandedModules, setExpandedModules] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -169,6 +169,16 @@ export default function ModuleList({ data }) {
                             <span>Depth: <strong>{topic.conceptual_depth}/10</strong></span>
                             <span>Importance: <strong>{topic.importance_score}%</strong></span>
                           </div>
+
+                          {onForwardToFlashcards && (
+                            <button
+                              onClick={() => onForwardToFlashcards(topic.topic_name)}
+                              className="btn btn-secondary"
+                              style={{ width: '100%', padding: '6px', fontSize: '0.75rem', marginTop: '8px', color: 'var(--color-primary)' }}
+                            >
+                              🗂️ Study Topic Flashcards
+                            </button>
+                          )}
                         </div>
                       ))
                     ) : (
