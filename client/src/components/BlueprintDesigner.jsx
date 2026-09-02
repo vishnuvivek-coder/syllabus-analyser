@@ -932,28 +932,114 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
               </div>
             </div>
 
-            {/* Constraints Check Panel */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
-              <div>
-                <h4 style={{ fontSize: '0.85rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>Difficulty Distribution Check</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem' }}>
-                  {Object.entries(blueprintResult.blueprint_summary.difficulty_breakdown).map(([level, val]) => (
-                    <div key={level} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{level}</span>
-                      <strong style={{ color: 'var(--color-accent)' }}>{val}</strong>
-                    </div>
-                  ))}
+            {/* Bloom's Taxonomy Coverage & Cognitive Balance Report (Feature 12) */}
+            <div style={{ padding: '18px', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    📊 Bloom's Taxonomy Coverage Report
+                  </h4>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Cognitive distribution analysis across {blueprintResult.questions?.length || 0} examination questions
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {(() => {
+                    const blooms = blueprintResult.questions?.map(q => q.bloom_level) || [];
+                    const highOrder = blooms.filter(b => ['Apply', 'Analyze', 'Evaluate', 'Create'].includes(b)).length;
+                    const ratio = blooms.length > 0 ? (highOrder / blooms.length) * 100 : 0;
+                    return (
+                      <span className="badge" style={{
+                        background: ratio >= 60 ? 'rgba(123, 174, 127, 0.2)' : 'rgba(212, 161, 92, 0.2)',
+                        color: ratio >= 60 ? 'var(--color-success)' : 'var(--color-primary)',
+                        border: '1px solid currentColor'
+                      }}>
+                        {ratio >= 60 ? '⚡ Rigorous & Analytical (HOT)' : '📘 Foundational Balance'} ({Math.round(ratio)}% HOTS)
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
-              <div>
-                <h4 style={{ fontSize: '0.85rem', marginBottom: '8px', color: 'var(--text-secondary)' }}>Bloom Spectrum Check</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.75rem' }}>
-                  {Object.entries(blueprintResult.blueprint_summary.bloom_breakdown).map(([level, val]) => (
-                    <div key={level} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{level}</span>
-                      <strong style={{ color: 'var(--color-secondary)' }}>{val}</strong>
+
+              {/* Stacked Multi-Color Progress Bar */}
+              {(() => {
+                const colors = {
+                  Remember: '#6C6499',
+                  Understand: '#5D737E',
+                  Apply: '#7BAE7F',
+                  Analyze: '#D4A15C',
+                  Evaluate: '#E06A60',
+                  Create: '#B088F9'
+                };
+                const total = blueprintResult.questions?.length || 1;
+                const counts = {};
+                blueprintResult.questions?.forEach(q => {
+                  counts[q.bloom_level] = (counts[q.bloom_level] || 0) + 1;
+                });
+
+                return (
+                  <div>
+                    <div style={{ height: '14px', borderRadius: '7px', display: 'flex', overflow: 'hidden', width: '100%', marginBottom: '8px', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)' }}>
+                      {Object.keys(colors).map(lvl => {
+                        const cnt = counts[lvl] || 0;
+                        if (cnt === 0) return null;
+                        const pct = (cnt / total) * 100;
+                        return (
+                          <div
+                            key={lvl}
+                            style={{
+                              width: `${pct}%`,
+                              background: colors[lvl],
+                              height: '100%',
+                              transition: 'width 0.3s ease'
+                            }}
+                            title={`${lvl}: ${cnt} Questions (${Math.round(pct)}%)`}
+                          />
+                        );
+                      })}
                     </div>
-                  ))}
+
+                    {/* Legend Chips */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {Object.entries(colors).map(([lvl, color]) => {
+                        const cnt = counts[lvl] || 0;
+                        const pct = Math.round((cnt / total) * 100);
+                        return (
+                          <div key={lvl} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
+                            <span>{lvl}: <strong style={{ color: 'var(--text-primary)' }}>{cnt} ({pct}%)</strong></span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Constraints Check Sub-Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
+                <div>
+                  <h5 style={{ fontSize: '0.78rem', marginBottom: '6px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Difficulty Distribution</h5>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.75rem' }}>
+                    {Object.entries(blueprintResult.blueprint_summary.difficulty_breakdown).map(([level, val]) => (
+                      <div key={level} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{level}</span>
+                        <strong style={{ color: 'var(--color-primary)' }}>{val}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h5 style={{ fontSize: '0.78rem', marginBottom: '6px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Cognitive Spectrum Targets</h5>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.75rem' }}>
+                    {Object.entries(blueprintResult.blueprint_summary.bloom_breakdown).map(([level, val]) => (
+                      <div key={level} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{level}</span>
+                        <strong style={{ color: 'var(--color-accent)' }}>{val}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

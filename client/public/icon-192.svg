@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="36" fill="#0D0D0F"/>
+  <circle cx="96" cy="96" r="72" fill="#1A1A1D" stroke="#D4A15C" stroke-width="3"/>
+  <!-- Graduation Cap / Scholar Icon in Gold -->
+  <path d="M96 52 L148 76 L96 100 L44 76 Z" fill="#D4A15C"/>
+  <path d="M148 76 L148 108 L142 108 L142 79" fill="#C2904B"/>
+  <path d="M68 92 L68 120 C68 132 124 132 124 120 L124 92" fill="none" stroke="#D4A15C" stroke-width="4" stroke-linecap="round"/>
+  <!-- Amber Accent Diamond -->
+  <circle cx="96" cy="144" r="5" fill="#D4A15C"/>
+</svg>

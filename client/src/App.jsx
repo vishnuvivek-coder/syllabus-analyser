@@ -5,6 +5,9 @@ import ConceptGraph from './components/ConceptGraph';
 import BlueprintDesigner from './components/BlueprintDesigner';
 import QuestionLab from './components/QuestionLab';
 import FlashcardDeck from './components/FlashcardDeck';
+import AnswerEvaluator from './components/AnswerEvaluator';
+import QuestionVariants from './components/QuestionVariants';
+import PaperAnalyzer from './components/PaperAnalyzer';
 import ModuleList from './components/ModuleList';
 import Analytics from './components/Analytics';
 import { analyzeSyllabus } from './utils/api';
@@ -404,51 +407,72 @@ export default function App() {
               <button 
                 onClick={() => setActiveTab('graph')} 
                 className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
-                Knowledge Map
+                Map
               </button>
               <button 
                 onClick={() => setActiveTab('concepts')} 
                 className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
-                Concept Graph
+                Concepts
               </button>
               <button 
                 onClick={() => setActiveTab('blueprint')} 
                 className={`btn ${activeTab === 'blueprint' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
                 Exam Designer
               </button>
               <button 
                 onClick={() => setActiveTab('lab')} 
                 className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
                 Question Lab
               </button>
               <button 
+                onClick={() => setActiveTab('variants')} 
+                className={`btn ${activeTab === 'variants' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+              >
+                🔀 Variants
+              </button>
+              <button 
+                onClick={() => setActiveTab('evaluator')} 
+                className={`btn ${activeTab === 'evaluator' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+              >
+                ✍️ Evaluator
+              </button>
+              <button 
+                onClick={() => setActiveTab('pastpapers')} 
+                className={`btn ${activeTab === 'pastpapers' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+              >
+                🔄 Past Papers
+              </button>
+              <button 
                 onClick={() => setActiveTab('flashcards')} 
                 className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
-                <span>🗂️ Flashcards</span>
+                🗂️ Flashcards
               </button>
               <button 
                 onClick={() => setActiveTab('modules')} 
                 className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
-                Curriculum Hub
+                Curriculum
               </button>
               <button 
                 onClick={() => setActiveTab('analytics')} 
                 className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 14px', fontSize: '0.82rem', flex: 1, minWidth: '110px' }}
+                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
               >
-                Taxonomy Analytics
+                📊 Analytics
               </button>
             </div>
 
@@ -488,6 +512,32 @@ export default function App() {
                   savedQuestions={savedQuestions}
                   onSaveToBank={handleSaveQuestionToBank}
                   onRemoveFromBank={handleRemoveQuestionFromBank}
+                />
+              </div>
+              <div style={{ display: activeTab === 'variants' ? 'block' : 'none', height: '100%' }}>
+                <QuestionVariants 
+                  syllabusData={data}
+                  apiKey={localStorage.getItem('gemini_api_key')}
+                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
+                  savedQuestions={savedQuestions}
+                  onSaveToBank={handleSaveQuestionToBank}
+                />
+              </div>
+              <div style={{ display: activeTab === 'evaluator' ? 'block' : 'none', height: '100%' }}>
+                <AnswerEvaluator 
+                  syllabusData={data}
+                  apiKey={localStorage.getItem('gemini_api_key')}
+                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
+                  savedQuestions={savedQuestions}
+                />
+              </div>
+              <div style={{ display: activeTab === 'pastpapers' ? 'block' : 'none', height: '100%' }}>
+                <PaperAnalyzer 
+                  syllabusData={data}
+                  apiKey={localStorage.getItem('gemini_api_key')}
+                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
+                  onForwardToLab={handleForwardToLab}
+                  onForwardToFlashcards={handleForwardToFlashcards}
                 />
               </div>
               <div style={{ display: activeTab === 'flashcards' ? 'block' : 'none', height: '100%' }}>

@@ -27,6 +27,119 @@ export default function QuestionLab({
   const [refineResult, setRefineResult] = useState(null);
   const [refineError, setRefineError] = useState(null);
 
+  // Collaborative Bank States (Feature 16)
+  const [bankSearch, setBankSearch] = useState('');
+  const [bankDiffFilter, setBankDiffFilter] = useState('ALL');
+  const [bankBloomFilter, setBankBloomFilter] = useState('ALL');
+  const [bankRatingFilter, setBankRatingFilter] = useState(0);
+  const [bankTagFilter, setBankTagFilter] = useState('ALL');
+  const [newTagInput, setNewTagInput] = useState('');
+  const [taggingCardId, setTaggingCardId] = useState(null);
+
+  const [questionTags, setQuestionTags] = useState(() => {
+    try {
+      const saved = localStorage.getItem('question_bank_tags');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [questionRatings, setQuestionRatings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('question_bank_ratings');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const updateRating = (qId, rating) => {
+    setQuestionRatings(prev => {
+      const updated = { ...prev, [qId]: rating };
+      localStorage.setItem('question_bank_ratings', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const addTag = (qId, tag) => {
+    if (!tag.trim()) return;
+    setQuestionTags(prev => {
+      const cur = prev[qId] || [];
+      if (cur.includes(tag.trim())) return prev;
+      const updated = { ...prev, [qId]: [...cur, tag.trim()] };
+      localStorage.setItem('question_bank_tags', JSON.stringify(updated));
+      return updated;
+    });
+    setNewTagInput('');
+  };
+
+  const removeTag = (qId, tagToRemove) => {
+    setQuestionTags(prev => {
+      const cur = prev[qId] || [];
+      const updated = { ...prev, [qId]: cur.filter(t => t !== tagToRemove) };
+      localStorage.setItem('question_bank_tags', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleExportBankJSON = () => {
+    const exportPayload = {
+      version: '1.0',
+      exported_at: new Date().toISOString(),
+      subject: syllabusData?.subject_name || 'Academic Course',
+      questions: savedQuestions.map(q => ({
+        ...q,
+        tags: questionTags[q.id] || [],
+        rating: questionRatings[q.id] || 0
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `question_bank_${(syllabusData?.subject_name || 'course').replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportBankJSON = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        const importedQuestions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+        if (!importedQuestions.length) {
+          alert('No questions found in imported file.');
+          return;
+        }
+
+        let addedCount = 0;
+        importedQuestions.forEach(q => {
+          if (q.question_text && onSaveToBank) {
+            onSaveToBank(q);
+            if (q.tags?.length) {
+              setQuestionTags(prev => ({ ...prev, [q.id]: q.tags }));
+            }
+            if (q.rating) {
+              setQuestionRatings(prev => ({ ...prev, [q.id]: q.rating }));
+            }
+            addedCount++;
+          }
+        });
+
+        alert(`Successfully imported ${addedCount} questions into your Question Bank!`);
+      } catch (err) {
+        alert('Failed to parse Question Bank JSON file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Flatten topics from all modules to populate selection options
   const allTopics = React.useMemo(() => {
     if (!syllabusData || !syllabusData.modules) return [];
@@ -603,291 +716,490 @@ export default function QuestionLab({
                   <path d="M12 16v-4M12 8h.01"/>
                 </svg>
                 <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '4px' }}>Optimized Question Lab Ready</h4>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', maxWidth: '380px' }}>
-                  Choose a topic from the left selector and hit "Evaluate & Select Question" to generate, score, rank, and selection-justify 5 candidate assessment questions.
-                </p>
               </div>
             )}
           </div>
         </div>
       ) : (
-        /* Saved Question Bank Sub-tab */
-        <div className="glass-panel" style={{ padding: '24px', flex: '1', minHeight: '0', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Saved Question Bank ({savedQuestions.length})</h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Collection of saved and audited assessment questions forwarded from Exam Designer and Question Lab.
-            </p>
+        /* Saved Question Bank Sub-tab (Feature 16: Collaborative Question Bank) */
+        <div className="glass-panel" style={{ padding: '24px', flex: '1', minHeight: '0', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Header & Collaboration Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                🤝 Collaborative Question Bank ({savedQuestions.length})
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Shared academic question repository with custom tagging, 5-star quality ratings, and JSON export/import for department collaboration.
+              </p>
+            </div>
+
+            {/* Import / Export & Sharing Toolbar */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <label
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.75rem', cursor: 'pointer', margin: 0 }}
+                title="Import question bank JSON shared by another professor/colleague"
+              >
+                📤 Import JSON
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={handleImportBankJSON}
+                  style={{ display: 'none' }}
+                />
+              </label>
+
+              <button
+                onClick={handleExportBankJSON}
+                disabled={!savedQuestions.length}
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--color-primary)' }}
+                title="Export complete question bank to shareable JSON"
+              >
+                📥 Export JSON
+              </button>
+
+              <button
+                onClick={() => {
+                  const summary = savedQuestions.map((q, idx) => `Q${idx + 1} [${q.topic} - ${q.marks}M - ${q.difficulty || 'Medium'}]:\n${q.question_text}\n\nSolution Outline:\n${q.expected_answer_outline}\n\n---\n`).join('\n');
+                  navigator.clipboard.writeText(summary);
+                  alert('Complete Question Bank copied to clipboard in Markdown format!');
+                }}
+                disabled={!savedQuestions.length}
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                title="Copy all questions to clipboard as Markdown text"
+              >
+                📋 Copy All (MD)
+              </button>
+            </div>
           </div>
 
+          {/* Search & Filter Bar */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-secondary)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="🔍 Search questions, topics, solutions, tags..."
+              value={bankSearch}
+              onChange={(e) => setBankSearch(e.target.value)}
+              style={{ flex: '1', minWidth: '180px', padding: '6px 10px', fontSize: '0.8rem' }}
+            />
+
+            <select
+              className="form-input"
+              value={bankDiffFilter}
+              onChange={(e) => setBankDiffFilter(e.target.value)}
+              style={{ width: '130px', padding: '6px', fontSize: '0.75rem', background: 'var(--bg-elevated)' }}
+            >
+              <option value="ALL">All Difficulties</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+
+            <select
+              className="form-input"
+              value={bankBloomFilter}
+              onChange={(e) => setBankBloomFilter(e.target.value)}
+              style={{ width: '130px', padding: '6px', fontSize: '0.75rem', background: 'var(--bg-elevated)' }}
+            >
+              <option value="ALL">All Bloom Levels</option>
+              <option value="Remember">Remember</option>
+              <option value="Understand">Understand</option>
+              <option value="Apply">Apply</option>
+              <option value="Analyze">Analyze</option>
+              <option value="Evaluate">Evaluate</option>
+              <option value="Create">Create</option>
+            </select>
+
+            <select
+              className="form-input"
+              value={bankRatingFilter}
+              onChange={(e) => setBankRatingFilter(parseInt(e.target.value))}
+              style={{ width: '130px', padding: '6px', fontSize: '0.75rem', background: 'var(--bg-elevated)' }}
+            >
+              <option value={0}>All Ratings</option>
+              <option value={5}>⭐⭐⭐⭐⭐ (5 Stars)</option>
+              <option value={4}>⭐⭐⭐⭐+ (4+ Stars)</option>
+              <option value={3}>⭐⭐⭐+ (3+ Stars)</option>
+            </select>
+          </div>
+
+          {/* Questions List */}
           {savedQuestions.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {savedQuestions.map((q) => {
-                const isEditingThisCard = activeEditingId === q.id;
+              {savedQuestions
+                .filter(q => {
+                  if (bankSearch.trim()) {
+                    const query = bankSearch.toLowerCase();
+                    const textMatch = q.question_text?.toLowerCase().includes(query) ||
+                                      q.topic?.toLowerCase().includes(query) ||
+                                      q.expected_answer_outline?.toLowerCase().includes(query);
+                    const tags = questionTags[q.id] || [];
+                    const tagMatch = tags.some(t => t.toLowerCase().includes(query));
+                    if (!textMatch && !tagMatch) return false;
+                  }
+                  if (bankDiffFilter !== 'ALL' && q.difficulty !== bankDiffFilter) return false;
+                  if (bankBloomFilter !== 'ALL' && q.bloom_level !== bankBloomFilter) return false;
+                  const r = questionRatings[q.id] || 0;
+                  if (bankRatingFilter > 0 && r < bankRatingFilter) return false;
+                  return true;
+                })
+                .map((q) => {
+                  const isEditingThisCard = activeEditingId === q.id;
+                  const currentRating = questionRatings[q.id] || 0;
+                  const tags = questionTags[q.id] || [];
 
-                return (
-                  <div 
-                    key={q.id}
-                    className="glass-panel"
-                    style={{ 
-                      padding: '20px', 
-                      background: 'var(--bg-elevated)', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: '14px',
-                      border: isEditingThisCard ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)'
-                    }}
-                  >
-                    {/* Badges Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span className="badge badge-violet">{q.topic}</span>
-                        {q.difficulty && <span className="badge badge-cyan">{q.difficulty}</span>}
-                        {q.bloom_level && <span className="badge badge-pink">{q.bloom_level}</span>}
-                        {q.marks && <span className="badge badge-emerald">{q.marks} Marks</span>}
-                        {q.review_status && (
-                          <span className="badge" style={{
-                            backgroundColor: q.review_status === 'APPROVE' ? 'var(--color-success)' : 'var(--color-warning)',
-                            color: '#fff'
-                          }}>
-                            Audit: {q.review_status}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{q.timestamp || 'Saved'}</span>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          onClick={() => {
-                            if (isEditingThisCard) {
-                              handleCancelEditing();
-                            } else {
-                              handleStartEditing(q.id, q.question_text, q.expected_answer_outline);
-                            }
-                          }}
-                        >
-                          {isEditingThisCard ? 'Close Editor ✕' : 'Edit & Refine ✏️'}
-                        </button>
-                      </div>
-                    </div>
+                  return (
+                    <div 
+                      key={q.id}
+                      className="glass-panel"
+                      style={{ 
+                        padding: '20px', 
+                        background: 'var(--bg-elevated)', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '14px',
+                        border: isEditingThisCard ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)'
+                      }}
+                    >
+                      {/* Badges & Rating Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span className="badge badge-violet">{q.topic}</span>
+                          {q.difficulty && <span className="badge badge-cyan">{q.difficulty}</span>}
+                          {q.bloom_level && <span className="badge badge-pink">{q.bloom_level}</span>}
+                          {q.marks && <span className="badge badge-emerald">{q.marks} Marks</span>}
+                          {q.review_status && (
+                            <span className="badge" style={{
+                              backgroundColor: q.review_status === 'APPROVE' ? 'var(--color-success)' : 'var(--color-warning)',
+                              color: '#fff'
+                            }}>
+                              Audit: {q.review_status}
+                            </span>
+                          )}
 
-                    {/* Editable / AI Refine Panel for Card */}
-                    {isEditingThisCard ? (
-                      <div style={{ padding: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-focus)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>
-                          Refine Question with Custom AI Instructions
-                        </h4>
-
-                        {/* AI Instruction Input */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <input 
-                              type="text" 
-                              className="form-input" 
-                              placeholder="e.g. Add code implementation, change to multiple choice, or increase difficulty..."
-                              value={aiInstruction}
-                              onChange={(e) => setAiInstruction(e.target.value)}
-                              style={{ flex: '1' }}
-                            />
-                            <button 
-                              type="button" 
-                              className="btn btn-primary"
-                              onClick={() => handleAIRefine(q.topic)}
-                              disabled={isRefining || !aiInstruction.trim()}
-                              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
-                            >
-                              {isRefining ? 'Refining...' : 'Apply Revision 🪄'}
-                            </button>
-                          </div>
-
-                          {/* Quick Instruction Chips */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {['+ Make Code-Focused', '+ Increase Difficulty', '+ Add Case Study', '+ Simplify Explanation'].map((chip) => (
+                          {/* 5-Star Rating Widget */}
+                          <div style={{ display: 'flex', gap: '2px', marginLeft: '6px' }} title="Rate question quality">
+                            {[1, 2, 3, 4, 5].map(star => (
                               <button
-                                key={chip}
+                                key={star}
                                 type="button"
-                                onClick={() => setAiInstruction(chip.replace('+ ', ''))}
-                                style={{
-                                  background: 'rgba(255,255,255,0.04)',
-                                  border: '1px solid var(--border-subtle)',
-                                  borderRadius: '4px',
-                                  padding: '2px 8px',
-                                  fontSize: '0.72rem',
-                                  color: 'var(--text-secondary)',
-                                  cursor: 'pointer'
-                                }}
+                                onClick={() => updateRating(q.id, star === currentRating ? 0 : star)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: star <= currentRating ? 'var(--color-primary)' : 'var(--text-muted)', padding: 0 }}
                               >
-                                {chip}
+                                ★
                               </button>
                             ))}
                           </div>
-
-                          {refineError && (
-                            <div style={{ fontSize: '0.75rem', color: '#f87171', backgroundColor: 'rgba(239,68,68,0.08)', padding: '8px', borderRadius: '4px' }}>
-                              {refineError}
-                            </div>
-                          )}
-
-                          {/* Proposal */}
-                          {refineResult && (
-                            <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid var(--color-primary)', borderRadius: '6px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <span className="badge badge-violet" style={{ alignSelf: 'flex-start' }}>AI REVISION PROPOSAL</span>
-                              <p style={{ fontSize: '0.8rem', fontWeight: '600' }}>{refineResult.revised_question}</p>
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{refineResult.summary_of_changes}</span>
-                              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                <button 
-                                  type="button" 
-                                  className="btn btn-primary"
-                                  onClick={() => handleAcceptAIRefinement((newQ, newAns) => {
-                                    q.question_text = newQ;
-                                    q.expected_answer_outline = newAns;
-                                    setActiveEditingId(null);
-                                  })}
-                                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                                >
-                                  Accept Revision ✍️
-                                </button>
-                                <button 
-                                  type="button" 
-                                  className="btn btn-secondary"
-                                  onClick={() => setRefineResult(null)}
-                                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                                >
-                                  Discard
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </div>
-
-                        {/* Direct Manual Text Edit */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
-                          <div>
-                            <label className="form-label">Direct Question Text Edit</label>
-                            <textarea 
-                              className="form-input" 
-                              rows={3} 
-                              value={editText}
-                              onChange={(e) => setEditText(e.target.value)}
-                              style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
-                            />
-                          </div>
-
-                          <div>
-                            <label className="form-label">Direct Solution Outline Edit</label>
-                            <textarea 
-                              className="form-input" 
-                              rows={3} 
-                              value={editAnswer}
-                              onChange={(e) => setEditAnswer(e.target.value)}
-                              style={{ fontSize: '0.8rem' }}
-                            />
-                          </div>
-
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                            <button 
-                              type="button" 
-                              className="btn btn-secondary"
-                              onClick={handleCancelEditing}
-                              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                            >
-                              Cancel
-                            </button>
-                            <button 
-                              type="button" 
-                              className="btn btn-primary"
-                              onClick={() => {
-                                q.question_text = editText;
-                                q.expected_answer_outline = editAnswer;
-                                setActiveEditingId(null);
-                                alert('Saved Question updated!');
-                              }}
-                              style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                            >
-                              Save Manual Edits 💾
-                            </button>
-                          </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{q.timestamp || 'Saved'}</span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                            onClick={() => {
+                              if (isEditingThisCard) {
+                                handleCancelEditing();
+                              } else {
+                                handleStartEditing(q.id, q.question_text, q.expected_answer_outline);
+                              }
+                            }}
+                          >
+                            {isEditingThisCard ? 'Close Editor ✕' : 'Edit & Refine ✏️'}
+                          </button>
                         </div>
-
                       </div>
-                    ) : (
-                      <>
-                        {/* Static Question Prompt */}
-                        <div>
-                          <h4 style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Question Prompt</h4>
-                          <div style={{
-                            padding: '12px',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: '6px',
-                            fontSize: '0.88rem',
-                            lineHeight: '1.6',
-                            whiteSpace: 'pre-wrap'
-                          }}>
-                            <MathText text={q.question_text} />
-                          </div>
-                        </div>
 
-                        {/* Static Expected Solution */}
-                        {q.expected_answer_outline && (
+                      {/* Custom Tags Section */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>🏷️ Tags:</span>
+                        {tags.map((t, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              fontSize: '0.7rem',
+                              background: 'rgba(212, 161, 92, 0.1)',
+                              color: 'var(--color-primary)',
+                              border: '1px solid rgba(212, 161, 92, 0.25)',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            {t}
+                            <button
+                              onClick={() => removeTag(q.id, t)}
+                              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: '0.75rem', padding: 0 }}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+
+                        {taggingCardId === q.id ? (
+                          <span style={{ display: 'inline-flex', gap: '4px' }}>
+                            <input
+                              type="text"
+                              className="form-input"
+                              placeholder="Tag name..."
+                              value={newTagInput}
+                              onChange={(e) => setNewTagInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addTag(q.id, newTagInput);
+                                  setTaggingCardId(null);
+                                }
+                              }}
+                              style={{ width: '100px', padding: '2px 6px', fontSize: '0.7rem', height: '22px' }}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => {
+                                addTag(q.id, newTagInput);
+                                setTaggingCardId(null);
+                              }}
+                              className="btn btn-primary"
+                              style={{ padding: '2px 6px', fontSize: '0.7rem', height: '22px' }}
+                            >
+                              Add
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setTaggingCardId(q.id);
+                              setNewTagInput('');
+                            }}
+                            style={{ background: 'none', border: '1px dashed var(--border-subtle)', borderRadius: '12px', color: 'var(--text-muted)', fontSize: '0.68rem', padding: '2px 6px', cursor: 'pointer' }}
+                          >
+                            + Add Tag
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Editable / AI Refine Panel for Card */}
+                      {isEditingThisCard ? (
+                        <div style={{ padding: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-focus)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            Refine Question with Custom AI Instructions
+                          </h4>
+
+                          {/* AI Instruction Input */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <input 
+                                type="text" 
+                                className="form-input" 
+                                placeholder="e.g. Add code implementation, change to multiple choice, or increase difficulty..."
+                                value={aiInstruction}
+                                onChange={(e) => setAiInstruction(e.target.value)}
+                                style={{ flex: '1' }}
+                              />
+                              <button 
+                                type="button" 
+                                className="btn btn-primary" 
+                                onClick={() => handleAIRefine(q.topic)}
+                                disabled={isRefining || !aiInstruction.trim()}
+                                style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+                              >
+                                {isRefining ? 'Refining...' : 'Apply Revision 🪄'}
+                              </button>
+                            </div>
+
+                            {/* Quick Instruction Chips */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {['+ Make Code-Focused', '+ Increase Difficulty', '+ Add Case Study', '+ Simplify Explanation'].map((chip) => (
+                                <button
+                                  key={chip}
+                                  type="button"
+                                  onClick={() => setAiInstruction(chip.replace('+ ', ''))}
+                                  style={{
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {chip}
+                                </button>
+                              ))}
+                            </div>
+
+                            {refineError && (
+                              <div style={{ fontSize: '0.75rem', color: '#f87171', backgroundColor: 'rgba(239,68,68,0.08)', padding: '8px', borderRadius: '4px' }}>
+                                {refineError}
+                              </div>
+                            )}
+
+                            {/* Proposal */}
+                            {refineResult && (
+                              <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.06)', border: '1px solid var(--color-primary)', borderRadius: '6px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <span className="badge badge-violet" style={{ alignSelf: 'flex-start' }}>AI REVISION PROPOSAL</span>
+                                <p style={{ fontSize: '0.8rem', fontWeight: '600' }}>{refineResult.revised_question}</p>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{refineResult.summary_of_changes}</span>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-primary" 
+                                    onClick={() => handleAcceptAIRefinement((newQ, newAns) => {
+                                      q.question_text = newQ;
+                                      q.expected_answer_outline = newAns;
+                                      setActiveEditingId(null);
+                                    })}
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                  >
+                                    Accept Revision ✍️
+                                  </button>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-secondary" 
+                                    onClick={() => setRefineResult(null)}
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                  >
+                                    Discard
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Direct Manual Text Edit */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
+                            <div>
+                              <label className="form-label">Direct Question Text Edit</label>
+                              <textarea 
+                                className="form-input" 
+                                rows={3} 
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="form-label">Direct Solution Outline Edit</label>
+                              <textarea 
+                                className="form-input" 
+                                rows={3} 
+                                value={editAnswer}
+                                onChange={(e) => setEditAnswer(e.target.value)}
+                                style={{ fontSize: '0.8rem' }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                              <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={handleCancelEditing}
+                                style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                type="button" 
+                                className="btn btn-primary" 
+                                onClick={() => {
+                                  q.question_text = editText;
+                                  q.expected_answer_outline = editAnswer;
+                                  setActiveEditingId(null);
+                                  alert('Saved Question updated!');
+                                }}
+                                style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                              >
+                                Save Manual Edits 💾
+                              </button>
+                            </div>
+                          </div>
+
+                        </div>
+                      ) : (
+                        <>
+                          {/* Static Question Prompt */}
                           <div>
-                            <h4 style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Expected Solution Outline</h4>
+                            <h4 style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Question Prompt</h4>
                             <div style={{
                               padding: '12px',
-                              background: 'rgba(123, 174, 127, 0.04)',
-                              border: '1px solid rgba(123, 174, 127, 0.2)',
+                              background: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-subtle)',
                               borderRadius: '6px',
-                              fontSize: '0.82rem',
+                              fontSize: '0.88rem',
                               lineHeight: '1.6',
                               whiteSpace: 'pre-wrap'
                             }}>
-                              <MathText text={q.expected_answer_outline} />
+                              <MathText text={q.question_text} />
                             </div>
                           </div>
-                        )}
-                      </>
-                    )}
 
-                    {/* Actions Bar */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-                      <button 
-                        className="btn btn-secondary" 
-                        onClick={() => {
-                          setSelectedTopic(q.topic);
-                          setActiveSubTab('evaluator');
-                          handleGenerate(q.topic);
-                        }}
-                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                      >
-                        Run 5-Candidate Evaluation
-                      </button>
-                      <button 
-                        className="btn btn-secondary" 
-                        onClick={() => {
-                          const content = `TOPIC: ${q.topic}\n\nQUESTION:\n${q.question_text}\n\nANSWER:\n${q.expected_answer_outline}`;
-                          navigator.clipboard.writeText(content);
-                          alert('Q&A copied to clipboard!');
-                        }}
-                        style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                      >
-                        Copy Q&A
-                      </button>
-                      {onRemoveFromBank && (
+                          {/* Static Expected Solution */}
+                          {q.expected_answer_outline && (
+                            <div>
+                              <h4 style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Expected Solution Outline</h4>
+                              <div style={{
+                                padding: '12px',
+                                background: 'rgba(123, 174, 127, 0.04)',
+                                border: '1px solid rgba(123, 174, 127, 0.2)',
+                                borderRadius: '6px',
+                                fontSize: '0.82rem',
+                                lineHeight: '1.6',
+                                whiteSpace: 'pre-wrap'
+                              }}>
+                                <MathText text={q.expected_answer_outline} />
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Actions Bar */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px', flexWrap: 'wrap' }}>
                         <button 
                           className="btn btn-secondary" 
-                          onClick={() => onRemoveFromBank(q.id)}
-                          style={{ padding: '6px 12px', fontSize: '0.78rem', color: 'var(--color-danger)' }}
+                          onClick={() => {
+                            setSelectedTopic(q.topic);
+                            setActiveSubTab('evaluator');
+                            handleGenerate(q.topic);
+                          }}
+                          style={{ padding: '6px 12px', fontSize: '0.78rem' }}
                         >
-                          Remove
+                          Run 5-Candidate Evaluation
                         </button>
-                      )}
+                        <button 
+                          className="btn btn-secondary" 
+                          onClick={() => {
+                            const content = `TOPIC: ${q.topic}\n\nQUESTION:\n${q.question_text}\n\nANSWER:\n${q.expected_answer_outline}`;
+                            navigator.clipboard.writeText(content);
+                            alert('Q&A copied to clipboard!');
+                          }}
+                          style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                        >
+                          Copy Q&A
+                        </button>
+                        {onRemoveFromBank && (
+                          <button 
+                            className="btn btn-secondary" 
+                            onClick={() => onRemoveFromBank(q.id)}
+                            style={{ padding: '6px 12px', fontSize: '0.78rem', color: 'var(--color-danger)' }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           ) : (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>

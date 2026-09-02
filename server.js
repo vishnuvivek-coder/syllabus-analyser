@@ -862,10 +862,342 @@ ${typeof syllabusContext === 'object' ? JSON.stringify(syllabusContext, null, 2)
       throw new Error('Flashcard generator returned invalid JSON formatting. Please try again.');
     }
 
+app.post('/api/evaluate-answer', upload.single('answerFile'), async (req, res) => {
+  try {
+    let answerText = req.body.answerText || '';
+    const questionText = req.body.questionText || '';
+    const modelAnswer = req.body.modelAnswer || '';
+    const totalMarks = parseFloat(req.body.totalMarks) || 10;
+    const modelName = req.body.modelName || 'gemini-3.6-flash';
+    const clientApiKey = req.headers['x-api-key'];
+    const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
+    }
+
+    if (!questionText) {
+      return res.status(400).json({ error: 'Question text is required for answer evaluation.' });
+    }
+
+    let imagePart = null;
+    if (req.file) {
+      const mime = req.file.mimetype;
+      if (mime === 'application/pdf') {
+        try {
+          const pdfData = await pdfParse(req.file.buffer);
+          answerText = (answerText ? answerText + '\n\n' : '') + pdfData.text;
+        } catch (pdfErr) {
+          console.error('PDF parsing error in answer evaluation:', pdfErr);
+          return res.status(400).json({ error: 'Failed to extract text from the uploaded PDF answer sheet.' });
+        }
+      } else if (mime.startsWith('image/')) {
+        imagePart = {
+          inlineData: {
+            data: req.file.buffer.toString('base64'),
+            mimeType: mime
+          }
+        };
+      }
+    }
+
+    if (!answerText && !imagePart) {
+      return res.status(400).json({ error: 'Please provide student answer text or upload an answer sheet image/PDF.' });
+    }
+
+    const systemPrompt = `You are a fair, rigorous, and constructive university professor and answer script examiner.
+Your task is to thoroughly evaluate the student's submitted answer against the official question and model answer outline.
+
+GRADING PRINCIPLES:
+1. Award proportional partial credit for correct steps, formulas, and reasoning.
+2. Deduct marks specifically for conceptual errors, calculation mistakes, omissions, or invalid assumptions.
+3. Max Marks for this question is: ${totalMarks}. Total score MUST be between 0 and ${totalMarks}.
+4. Provide structured, constructive feedback that helps the student master the topic.
+5. All mathematical formulas MUST be formatted with LaTeX standard delimiters ($...$ or $$...$$).
+
+Format the output strictly as JSON following this structure:
+{
+  "total_score": 8.5,
+  "max_marks": ${totalMarks},
+  "percentage": 85,
+  "overall_grade": "A" | "B" | "C" | "D" | "F",
+  "summary": "2-3 sentence overview of student performance and conceptual grasp",
+  "section_scores": [
+    {
+      "criterion": "Conceptual Clarity & Definition",
+      "score": 3.5,
+      "max": 4,
+      "feedback": "Specific feedback on this step"
+    },
+    {
+      "criterion": "Derivation & Mathematical Working",
+      "score": 3,
+      "max": 4,
+      "feedback": "Specific feedback on calculations"
+    },
+    {
+      "criterion": "Final Answer & Interpretation",
+      "score": 2,
+      "max": 2,
+      "feedback": "Feedback on final result"
+    }
+  ],
+  "strengths": ["List of what the student did well"],
+  "weaknesses": ["List of exact errors or gaps in reasoning"],
+  "improvement_tips": ["Actionable study suggestions to improve"],
+  "detailed_annotated_feedback": "Comprehensive line-by-line examiner commentary"
+}`;
+
+    const promptText = `
+--- QUESTION ---
+${questionText}
+
+--- MODEL ANSWER / SOLUTION OUTLINE ---
+${modelAnswer || 'Use expert standard academic model solution for the question above.'}
+
+--- STUDENT SUBMITTED ANSWER ---
+${answerText || 'Please read the attached handwritten/typed answer image.'}
+`;
+
+    const userParts = [{ text: promptText }];
+    if (imagePart) {
+      userParts.unshift(imagePart);
+    }
+
+    const { response } = await generateWithFallback(
+      apiKey,
+      modelName,
+      [{ role: 'user', parts: userParts }],
+      systemPrompt,
+      { timeout: 300000 }
+    );
+
+    const responseText = response.text();
+    let parsedData;
+    try {
+      parsedData = robustJSONParse(responseText);
+    } catch (parseErr) {
+      console.error('Failed to parse answer evaluator response as JSON:', responseText);
+      throw new Error('Answer evaluator returned invalid JSON formatting. Please try again.');
+    }
+
     res.json(parsedData);
   } catch (error) {
-    console.error('Error generating flashcards:', error);
-    res.status(500).json({ error: 'Failed to generate flashcards. ' + error.message });
+    console.error('Error evaluating answer:', error);
+    res.status(500).json({ error: 'Failed to evaluate answer. ' + error.message });
+  }
+});
+
+app.post('/api/generate-variants', async (req, res) => {
+  try {
+    const {
+      questionText,
+      expectedAnswer,
+      topic,
+      marks = 10,
+      difficulty = 'Medium',
+      bloomLevel = 'Apply',
+      variantCount = 4,
+      modelName = 'gemini-3.6-flash'
+    } = req.body;
+
+    const clientApiKey = req.headers['x-api-key'];
+    const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
+    }
+
+    if (!questionText) {
+      return res.status(400).json({ error: 'Original question text is required.' });
+    }
+
+    const systemPrompt = `You are an expert assessment variation specialist.
+Your task is to generate ${variantCount} structurally distinct variations of an existing examination question.
+
+VARIATION ARCHETYPES:
+1. "Parameter & Context Shift": Same underlying theorem/algorithm, but with altered numerical values, dimensions, or variables.
+2. "Inverse / Reverse Problem": Given the output or constraint, solve backwards for the initial parameters or conditions.
+3. "Real-World Engineering Scenario": Wrap the core theoretical concept in a practical industry case study.
+4. "Counter-Example / Edge Case Challenge": Test the boundary conditions where the standard formula or assumption fails.
+
+MATHEMATICAL FORMATTING:
+- Wrap all equations in $...$ (inline) or $$...$$ (display).
+- NEVER use escaped \\$.
+
+Format the output strictly as JSON following this structure:
+{
+  "original_question": "...",
+  "topic": "${topic || 'General'}",
+  "variants": [
+    {
+      "variant_id": "var_1",
+      "variation_type": "Parameter & Context Shift",
+      "description": "Explanation of how this variant tests the concept from a different angle",
+      "question_text": "Complete question text...",
+      "expected_answer_outline": "Step-by-step solution outline...",
+      "difficulty": "${difficulty}",
+      "bloom_level": "${bloomLevel}",
+      "estimated_solving_time": 15
+    }
+  ]
+}`;
+
+    const inputData = `
+--- ORIGINAL QUESTION ---
+TOPIC: ${topic || 'General'}
+MARKS: ${marks}
+DIFFICULTY: ${difficulty}
+BLOOM LEVEL: ${bloomLevel}
+
+QUESTION:
+${questionText}
+
+MODEL ANSWER:
+${expectedAnswer || 'None provided'}
+`;
+
+    const { response } = await generateWithFallback(
+      apiKey,
+      modelName,
+      [{ role: 'user', parts: [{ text: inputData }] }],
+      systemPrompt,
+      { timeout: 300000 }
+    );
+
+    const responseText = response.text();
+    let parsedData;
+    try {
+      parsedData = robustJSONParse(responseText);
+    } catch (parseErr) {
+      console.error('Failed to parse question variants response as JSON:', responseText);
+      throw new Error('Variant generator returned invalid JSON formatting. Please try again.');
+    }
+
+    res.json(parsedData);
+  } catch (error) {
+    console.error('Error generating question variants:', error);
+    res.status(500).json({ error: 'Failed to generate variants. ' + error.message });
+  }
+});
+
+app.post('/api/analyze-paper', upload.single('paperFile'), async (req, res) => {
+  try {
+    let paperText = req.body.paperText || '';
+    const syllabusContext = req.body.syllabusContext || null;
+    const examName = req.body.examName || 'Previous Year Paper';
+    const year = req.body.year || '2024';
+    const modelName = req.body.modelName || 'gemini-3.6-flash';
+    const clientApiKey = req.headers['x-api-key'];
+    const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
+    }
+
+    if (req.file) {
+      const mime = req.file.mimetype;
+      if (mime === 'application/pdf') {
+        try {
+          const pdfData = await pdfParse(req.file.buffer);
+          paperText = pdfData.text;
+        } catch (pdfErr) {
+          console.error('PDF parsing error in paper analyzer:', pdfErr);
+          return res.status(400).json({ error: 'Failed to extract text from the uploaded exam paper PDF.' });
+        }
+      }
+    }
+
+    if (!paperText || !paperText.trim()) {
+      return res.status(400).json({ error: 'Please upload a PDF or paste past year exam paper text.' });
+    }
+
+    const systemPrompt = `You are a high-level academic curriculum auditor and exam trend forecaster.
+Your task is to analyze a previous year examination paper against the syllabus curriculum.
+
+OBJECTIVES:
+1. Extract every individual question with its question number, marks, and text.
+2. Map each question to its corresponding syllabus module and topic.
+3. Compute frequency analytics: which topics are repeatedly tested vs neglected.
+4. Generate high-probability exam predictions for the upcoming test cycle based on exam cadence patterns.
+5. Identify syllabus blind spots (topics present in curriculum that have 0 past questions).
+
+Format the output strictly as JSON following this structure:
+{
+  "paper_info": {
+    "title": "${examName} (${year})",
+    "total_marks_extracted": 100,
+    "total_questions_extracted": 10
+  },
+  "extracted_questions": [
+    {
+      "question_no": "1(a)",
+      "question_text": "Exact or cleaned question text...",
+      "marks": 5,
+      "matched_module": "Module 1: Title",
+      "matched_topic": "Topic Name",
+      "difficulty": "Easy" | "Medium" | "Hard",
+      "bloom_level": "Understand" | "Apply" | "Analyze",
+      "conceptual_theme": "Core theme tested"
+    }
+  ],
+  "topic_frequency": [
+    {
+      "topic_name": "Topic Name",
+      "module_name": "Module Name",
+      "questions_count": 2,
+      "total_marks": 15,
+      "weight_percentage": 15.0,
+      "tested_cadence": "Repeated Every Year" | "Frequent" | "Occasional"
+    }
+  ],
+  "high_probability_predictions": [
+    {
+      "topic_name": "Topic Name",
+      "prediction_confidence": "High" | "Medium",
+      "rationale": "Why this topic is likely to appear in the next exam",
+      "predicted_question_prompt": "Suggested mock question prompt for students to prepare"
+    }
+  ],
+  "untested_syllabus_blindspots": [
+    {
+      "topic_name": "Topic Name",
+      "module_name": "Module Name",
+      "risk_level": "High" | "Medium",
+      "recommendation": "Why students should not skip this despite 0 past appearances"
+    }
+  ]
+}`;
+
+    const inputData = `
+--- EXAMINATION PAPER TEXT ---
+${paperText}
+
+--- CURRENT SYLLABUS REFERENCE CONTEXT ---
+${typeof syllabusContext === 'object' ? JSON.stringify(syllabusContext, null, 2) : syllabusContext || 'General academic curriculum'}
+`;
+
+    const { response } = await generateWithFallback(
+      apiKey,
+      modelName,
+      [{ role: 'user', parts: [{ text: inputData }] }],
+      systemPrompt,
+      { timeout: 300000 }
+    );
+
+    const responseText = response.text();
+    let parsedData;
+    try {
+      parsedData = robustJSONParse(responseText);
+    } catch (parseErr) {
+      console.error('Failed to parse paper analysis response as JSON:', responseText);
+      throw new Error('Paper analyzer returned invalid JSON formatting. Please try again.');
+    }
+
+    res.json(parsedData);
+  } catch (error) {
+    console.error('Error analyzing paper:', error);
+    res.status(500).json({ error: 'Failed to analyze previous year paper. ' + error.message });
   }
 });
 
