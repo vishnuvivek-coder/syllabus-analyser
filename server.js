@@ -862,6 +862,13 @@ ${typeof syllabusContext === 'object' ? JSON.stringify(syllabusContext, null, 2)
       throw new Error('Flashcard generator returned invalid JSON formatting. Please try again.');
     }
 
+    res.json(parsedData);
+  } catch (error) {
+    console.error('Error generating flashcards:', error);
+    res.status(500).json({ error: 'Failed to generate flashcards. ' + error.message });
+  }
+});
+
 app.post('/api/evaluate-answer', upload.single('answerFile'), async (req, res) => {
   try {
     let answerText = req.body.answerText || '';
