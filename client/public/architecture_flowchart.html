@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyllabiMind — Complete System Architecture & Flowchart</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#1A1A1D',
+        primaryColor: '#D4A15C',
+        primaryTextColor: '#0D0D0F',
+        primaryBorderColor: '#D4A15C',
+        lineColor: '#D4A15C',
+        secondaryColor: '#242429',
+        tertiaryColor: '#1A1A1D'
+      }
+    });
+  </script>
+  <style>
+    :root {
+      --bg-primary: #0D0D0F;
+      --bg-secondary: #1A1A1D;
+      --bg-elevated: #242429;
+      --color-primary: #D4A15C;
+      --color-primary-hover: #C2904B;
+      --color-accent: #6C6499;
+      --color-success: #7BAE7F;
+      --color-danger: #E06A60;
+      --text-primary: #F2F0EB;
+      --text-secondary: #A8A59E;
+      --text-muted: #6E6B65;
+      --border-subtle: rgba(212, 161, 92, 0.15);
+      --border-strong: rgba(212, 161, 92, 0.35);
+      --font-serif: 'Fraunces', Georgia, serif;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 24px;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 2.6rem;
+      color: var(--text-primary);
+    }
+
+    h1 span {
+      color: var(--color-primary);
+      font-style: italic;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--color-primary);
+      color: #0D0D0F;
+    }
+    .btn-primary:hover {
+      background-color: var(--color-primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-subtle);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-strong);
+      color: #fff;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      color: var(--color-primary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mermaid {
+      background: #151518;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    th {
+      color: var(--color-primary);
+      font-weight: 700;
+      background: var(--bg-elevated);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      color: var(--color-primary);
+      background: rgba(212, 161, 92, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.84rem;
+    }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      .btn, .toolbar { display: none; }
+      .card { box-shadow: none; border: 1px solid #ccc; background: #fff; color: #000; }
+      h1, h2 { color: #000; }
+      th { background: #eee; color: #000; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <span style="font-size: 0.75rem; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">
+        System Blueprint & Flow Documentation
+      </span>
+      <h1>SyllabiMind <span>System Architecture</span></h1>
+      <p style="color: var(--text-secondary); max-width: 650px; margin: 0 auto; font-size: 0.95rem;">
+        Complete architectural specification, end-to-end data pipelines, multi-model failover chains, and interactive flowcharts.
+      </p>
+
+      <div class="toolbar">
+        <button class="btn btn-primary" onclick="window.print()">
+          🖨️ Print / Save as PDF
+        </button>
+        <button class="btn btn-secondary" onclick="downloadCurrentHTML()">
+          📥 Download HTML Document
+        </button>
+        <a href="/" class="btn btn-secondary">
+          ⬅️ Back to Application
+        </a>
+      </div>
+    </header>
+
+    <!-- SECTION 1: MASTER END-TO-END FLOWCHART -->
+    <div class="card">
+      <h2>1. Master System Flowchart</h2>
+      <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 16px;">
+        Visual map of how user input travels through file parsing, generative AI fallback, self-healing JSON parsing, and branches into the 8 functional engines:
+      </p>
+
+      <div class="mermaid">
+flowchart TD
+    %% Styling classes
+    classDef input fill:#2A2418,stroke:#D4A15C,stroke-width:2px,color:#F2F0EB
+    classDef server fill:#1E1C28,stroke:#6C6499,stroke-width:2px,color:#F2F0EB
+    classDef ai fill:#2B1E1E,stroke:#E06A60,stroke-width:2px,color:#F2F0EB
+    classDef client fill:#1B2520,stroke:#7BAE7F,stroke-width:2px,color:#F2F0EB
+
+    %% Ingestion
+    User(["👨‍🎓 User (Student / Professor)"]):::input
+    User -->|PDF Upload / Image / Paste| InputPanel["InputPanel.jsx"]:::input
+    InputPanel -->|POST /api/analyze| Server["Express Backend (server.js:3001)"]:::server
+
+    %% Server Ingestion
+    subgraph ServerProcessing ["Backend Processing Pipeline"]
+        Server --> Multer["Multer (Memory Ingestion)"]:::server
+        Multer --> PDFParse["pdf-parse (Text Extraction)"]:::server
+        PDFParse --> FallbackEngine["generateWithFallback() Engine"]:::server
+    end
+
+    %% Gemini AI Layer
+    subgraph AILayer ["Google Gemini AI Cluster"]
+        FallbackEngine -->|1. Try Primary| G1["gemini-3.6-flash"]:::ai
+        G1 -.->|429 Rate Limit or 404| G2["gemini-3.5-flash"]:::ai
+        G2 -.->|Failover| G3["gemini-3.5-flash-lite"]:::ai
+        G3 -.->|Deep Reasoning| G4["gemini-3.1-pro-preview"]:::ai
+    end
+
+    %% Self-Healing Parsing
+    AILayer --> ResponseText["Raw AI Response String"]:::server
+    ResponseText --> RobustJSON["robustJSONParse()\n(Strips markdown fences, fixes trailing commas, auto-balances braces)"]:::server
+    RobustJSON --> StructuredData[("Structured Syllabus JSON Schema")]:::client
+
+    %% Client Routing
+    StructuredData --> AppRouter["App.jsx Orchestrator"]:::client
+
+    %% Branches
+    subgraph ModulesBranch ["Curriculum & Knowledge Domain"]
+        AppRouter --> KnowledgeGraph["KnowledgeGraph.jsx (D3 Force Graph)"]:::client
+        AppRouter --> ConceptGraph["ConceptGraph.jsx (Prerequisites)"]:::client
+        AppRouter --> ModuleList["ModuleList.jsx (Curriculum Hub)"]:::client
+    end
+
+    subgraph AssessmentBranch ["Assessment & Exam Architecture"]
+        AppRouter --> Blueprint["BlueprintDesigner.jsx\n- Question Count Constraints\n- Sub-question Allocation\n- Bloom's HOTS Report"]:::client
+        Blueprint --> QuestionLab["QuestionLab.jsx\n- 5-Candidate Evaluator\n- 15-Parameter Audit"]:::client
+        QuestionLab --> Variants["QuestionVariants.jsx\n- Parameter Shift\n- Inverse Problem\n- Case Studies"]:::client
+        QuestionLab --> QuestionBank[("Collaborative Bank (Tags, Ratings, JSON Export/Import)")]:::client
+    end
+
+    subgraph StudentBranch ["Student Evaluation & Learning"]
+        AppRouter --> Evaluator["AnswerEvaluator.jsx\n- Gemini Vision Photo Grading\n- Section-wise Partial Credit"]:::client
+        AppRouter --> PastPapers["PaperAnalyzer.jsx\n- Frequency Heatmaps\n- AI Exam Predictions\n- Blindspot Flags"]:::client
+        AppRouter --> Flashcards["FlashcardDeck.jsx\n- 3D Flip Cards\n- WebSpeech TTS\n- Anki TSV Export"]:::client
+    end
+
+    subgraph AnalyticsSubsystem ["Analytics & Offline PWA"]
+        AppRouter --> Analytics["Analytics.jsx\n- 4-Quadrant Priority Matrix\n- Platform KPI Dashboard\n- 7-Day Study Streak"]:::client
+        AppRouter --> PWA["sw.js Service Worker\n- Offline Cache for Flashcards\n- Mobile App Install"]:::client
+    end
+      </div>
+    </div>
+
+    <!-- SECTION 2: ARCHITECTURE SPECIFICATION TABLE -->
+    <div class="card">
+      <h2>2. Core Subsystems & Components</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Component / File</th>
+            <th>Primary Functionality</th>
+            <th>Underlying Technologies</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>App.jsx</code></td>
+            <td>Global state orchestrator, persistent tab management, session history drawer.</td>
+            <td>React 19, LocalStorage</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>MathText.jsx</code></td>
+            <td>Tokenizes mathematical expressions and renders KaTeX LaTeX formulas.</td>
+            <td>KaTeX 0.16, Regex</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>BlueprintDesigner.jsx</code></td>
+            <td>Custom question counts, sub-question structure, and Bloom's HOTS coverage report.</td>
+            <td>React, Pure CSS Bar Graphs</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>AnswerEvaluator.jsx</code></td>
+            <td>Grades student handwritten/typed answers with partial credit rubric.</td>
+            <td>Gemini Vision, FormData API</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>PaperAnalyzer.jsx</code></td>
+            <td>Historical question paper mapping, recurrence heatmaps, and exam forecasting.</td>
+            <td>pdf-parse, Gemini AI</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>QuestionVariants.jsx</code></td>
+            <td>Generates structurally diverse examination question variants (Sets A, B, C).</td>
+            <td>AI Variation Archetypes</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>QuestionLab.jsx</code></td>
+            <td>Collaborative Question Bank, custom tagging, 5-star ratings, JSON import/export.</td>
+            <td>Blob API, FileReader, LocalStorage</td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td><code>FlashcardDeck.jsx</code></td>
+            <td>Interactive 3D study cards, WebSpeech TTS audio playback, Anki TSV export.</td>
+            <td>CSS 3D Transforms, Web Speech API</td>
+          </tr>
+          <tr>
+            <td><strong>Backend</strong></td>
+            <td><code>server.js</code></td>
+            <td>REST API, static bundle serving, and AI prompt orchestration.</td>
+            <td>Node.js, Express, Multer</td>
+          </tr>
+          <tr>
+            <td><strong>Backend</strong></td>
+            <td><code>generateWithFallback()</code></td>
+            <td>Multi-tier model fallback (gemini-3.6-flash ➔ 3.5-flash ➔ flash-lite ➔ pro).</td>
+            <td>@google/generative-ai</td>
+          </tr>
+          <tr>
+            <td><strong>PWA</strong></td>
+            <td><code>sw.js & manifest.json</code></td>
+            <td>Offline caching and desktop/mobile installation ("Add to Home Screen").</td>
+            <td>Cache API, Web App Manifest</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 3: DATA LIFECYCLE FLOWCHART -->
+    <div class="card">
+      <h2>3. Data Pipeline & Assessment Lifecycle Flow</h2>
+      <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Teacher / Student
+    participant UI as React UI (Browser)
+    participant API as Express API (server.js)
+    participant AI as Gemini 3.6 Flash Cluster
+    participant Storage as Browser LocalStorage
+
+    User->>UI: Uploads Syllabus PDF
+    UI->>API: POST /api/analyze (Multipart FormData)
+    API->>API: pdf-parse extracts raw text
+    API->>AI: Prompts curriculum extraction
+    AI-->>API: Returns structured JSON response
+    API->>API: robustJSONParse() sanitizes data
+    API-->>UI: Sends Syllabus Graph Schema
+    UI->>Storage: Automatically caches session
+
+    Note over UI, User: User configures Exam Blueprint
+    User->>UI: Specifies 5 Questions with 2 Sub-questions each
+    UI->>API: POST /api/generate-exam-blueprint
+    API->>AI: Enforces Question & Sub-Question constraints
+    AI-->>API: Returns Blueprint Table + Bloom breakdown
+    API-->>UI: Renders Blueprint & HOTS Coverage Report
+
+    Note over UI, User: Student submits answer photo for evaluation
+    User->>UI: Uploads handwritten answer photo
+    UI->>API: POST /api/evaluate-answer (Image buffer + Question)
+    API->>AI: Gemini Multimodal Vision Rubric Analysis
+    AI-->>API: Section-wise scores + LaTeX errors
+    API-->>UI: Scorecard with % and KaTeX commentary
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function downloadCurrentHTML() {
+      const htmlContent = document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'SyllabiMind_Architecture_and_Flowchart.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
