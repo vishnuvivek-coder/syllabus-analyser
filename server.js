@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -8,6 +9,28 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// In-Memory Fast Cache for Instant Re-analysis
+const analysisCache = new Map();
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+function cleanSyllabusText(text) {
+  if (!text) return '';
+  let cleaned = text;
+  // Strip repeated page numbering like "Page 1 of 10", "Page 2/10"
+  cleaned = cleaned.replace(/Page\s+\d+\s*(of|\/)\s*\d+/gi, '');
+  // Strip repeated copyright / disclaimers
+  cleaned = cleaned.replace(/©\s*\d{4}[^\n]*/gi, '');
+  // Collapse 3+ consecutive newlines into double newlines
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  // Collapse redundant spaces
+  cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+  // Cap excessive length at 35,000 characters to prevent huge token lag
+  if (cleaned.length > 35000) {
+    cleaned = cleaned.substring(0, 35000);
+  }
+  return cleaned.trim();
+}
 
 function robustJSONParse(text) {
   let cleaned = text.trim();
@@ -83,9 +106,9 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
 
   const fallbackModels = [
     normalizedRequested,
+    'gemini-3.5-flash-lite',
     'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
     'gemini-3.1-pro-preview'
   ].filter((v, i, a) => v && a.indexOf(v) === i);
 
@@ -96,7 +119,11 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
       const ai = new GoogleGenerativeAI(apiKey);
       const model = ai.getGenerativeModel({
         model: modelName,
-        generationConfig: { responseMimeType: 'application/json' }
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: options.temperature !== undefined ? options.temperature : 0.1,
+          maxOutputTokens: options.maxOutputTokens || 8192
+        }
       });
       const result = await model.generateContent({
         contents,
@@ -115,9 +142,16 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
         msg.includes('resource_exhausted') ||
         msg.includes('404') ||
         msg.includes('no longer available') ||
-        msg.includes('not found')
+        msg.includes('not found') ||
+        msg.includes('503') ||
+        msg.includes('Service Unavailable') ||
+        msg.includes('high demand') ||
+        msg.includes('overloaded') ||
+        msg.includes('500') ||
+        msg.includes('Internal Server Error') ||
+        msg.includes('502')
       ) {
-        console.warn(`[Model Fallback] Model "${modelName}" failed (${msg.substring(0, 120)}). Retrying with next fallback model...`);
+        console.warn(`[Model Fallback] Model "${modelName}" unavailable/rate-limited (${msg.substring(0, 100)}). Automatically failing over to next model...`);
         continue;
       }
       throw err;
@@ -166,15 +200,37 @@ app.post('/api/analyze', upload.single('syllabusFile'), async (req, res) => {
       }
     }
 
+    syllabusText = cleanSyllabusText(syllabusText);
+
     if (!syllabusText.trim() && !imagePart) {
       return res.status(400).json({ error: 'Syllabus content is empty. Please upload a PDF, paste syllabus text, or upload/paste a screenshot.' });
+    }
+
+    // Fast Cache Check (Instant ~10ms return on re-runs or duplicate uploads)
+    const cacheKey = crypto.createHash('sha256').update(
+      (syllabusText || '') + 
+      (imagePart ? imagePart.inlineData.data.substring(0, 1000) : '') + 
+      (moduleList || '') + 
+      (learningOutcomes || '') +
+      modelName
+    ).digest('hex');
+
+    const cached = analysisCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      console.log(`[Cache Hit] Returning instant cached analysis for hash ${cacheKey.substring(0, 8)}...`);
+      return res.json(cached.data);
     }
 
     const systemPrompt = `You are an expert academic curriculum analyst.
 Your task is to analyze the provided syllabus and convert it into a structured knowledge representation in JSON format.
 
-Do NOT invent topics that are not supported by the syllabus.
-If the syllabus is ambiguous, explicitly list the ambiguities in the "ambiguities" array.
+EFFICIENCY & SPEED GUIDELINES:
+- Output clean, dense, and valid JSON immediately with zero conversational filler.
+- Keep "subtopics" to 2-3 essential items per topic.
+- Keep "application_potential" and "estimated_learning_time" concise (under 8 words each).
+- Focus "concept_dependency_graph" on the 10-15 most central core concepts and their direct prerequisite relationships.
+- Do NOT invent topics that are not supported by the syllabus.
+- If ambiguous, note it briefly in "ambiguities".
 
 Strictly adhere to the following JSON structure:
 {
@@ -192,8 +248,8 @@ Strictly adhere to the following JSON structure:
           "conceptual_depth": 7,
           "prerequisite_topics": ["List of topic_ids that should be learned before this topic"],
           "suitable_bloom_levels": ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"],
-          "suitable_question_types": ["Multiple Choice", "Short Answer", "Programming Problems", "Case Study", "Mathematical Proof"],
-          "estimated_learning_time": "Estimated hours (e.g., '3 hours')",
+          "suitable_question_types": ["Multiple Choice", "Short Answer", "Case Study"],
+          "estimated_learning_time": "3 hours",
           "application_potential": "Short description of real-world application",
           "important_concepts": ["Core concept A"],
           "is_practical": true,
@@ -204,29 +260,29 @@ Strictly adhere to the following JSON structure:
     }
   ],
   "learning_outcomes": ["Outcomes listed in syllabus or inferred from topics"],
-  "ambiguities": ["List any ambiguities, missing dependencies, or unclear definitions in the syllabus"],
+  "ambiguities": ["List any ambiguities or missing dependencies"],
   
   "concept_dependency_graph": {
     "concepts": [
       {
         "id": "concept_1",
         "name": "Linear Regression",
-        "category": "foundational", // "foundational", "intermediate", "advanced", "applied"
-        "prerequisites": ["concept_0"],
+        "category": "foundational",
+        "prerequisites": [],
         "dependents": ["concept_2"],
-        "related": ["concept_3"],
-        "contrasting": ["concept_4"],
-        "application_domains": ["Machine Learning", "Econometrics"],
-        "interdisciplinary_connections": ["Statistics", "Calculus"],
-        "assessment_suitability": ["synthesis", "application", "comparison"]
+        "related": [],
+        "contrasting": [],
+        "application_domains": ["Machine Learning"],
+        "interdisciplinary_connections": ["Statistics"],
+        "assessment_suitability": ["application"]
       }
     ],
     "relationships": [
       {
         "source": "concept_1",
         "target": "concept_2",
-        "type": "PREREQUISITE", // "PREREQUISITE", "DEPENDS_ON", "RELATED_TO", "CONTRASTS_WITH", "EXTENDS", "APPLIES_TO"
-        "strength": 0.85 // Float between 0.0 and 1.0
+        "type": "PREREQUISITE",
+        "strength": 0.85
       }
     ]
   }
@@ -253,12 +309,12 @@ Strictly adhere to the following JSON structure:
       parts.unshift(imagePart);
     }
 
-    const { response } = await generateWithFallback(
+    const { response, modelUsed } = await generateWithFallback(
       apiKey,
       modelName,
       [{ role: 'user', parts }],
       systemPrompt,
-      { timeout: 300000 }
+      { timeout: 180000, temperature: 0.1 }
     );
 
     const responseText = response.text();
@@ -268,6 +324,13 @@ Strictly adhere to the following JSON structure:
     } catch (parseErr) {
       console.error('Failed to parse model response as JSON. Raw text was:', responseText);
       throw new Error('Syllabus analysis returned invalid JSON formatting. Please try again.');
+    }
+
+    // Cache successful analysis result
+    analysisCache.set(cacheKey, { data: parsedData, timestamp: Date.now() });
+    if (analysisCache.size > 100) {
+      const firstKey = analysisCache.keys().next().value;
+      analysisCache.delete(firstKey);
     }
 
     res.json(parsedData);

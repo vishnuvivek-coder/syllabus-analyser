@@ -163,9 +163,9 @@ export default function InputPanel({ onAnalyze, isLoading, progress }) {
               onChange={(e) => setGeminiSelection(e.target.value)}
               style={{ background: 'var(--bg-secondary)', marginBottom: geminiSelection === 'custom' ? '8px' : '0' }}
             >
-              <option value="gemini-3.6-flash">Gemini 3.6 Flash (Recommended & Fast)</option>
+              <option value="gemini-3.5-flash-lite">⚡ Gemini 3.5 Flash Lite (Fastest & Highly Available)</option>
+              <option value="gemini-3.6-flash">Gemini 3.6 Flash (Deep Reasoning & Balanced)</option>
               <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-              <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
               <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview</option>
               <option value="custom">-- Custom Model Name --</option>
             </select>
@@ -330,17 +330,23 @@ export default function InputPanel({ onAnalyze, isLoading, progress }) {
             )}
           </div>
         ) : (
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            disabled={!syllabusFile && !syllabusText.trim()}
-            style={{ padding: '12px', fontSize: '0.9rem' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            Analyze Syllabus
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              <span>⚡ Fast Analysis Engine (Instant Cache + Streamlined Tokens)</span>
+              <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>Resilient Failover</span>
+            </div>
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={!syllabusFile && !syllabusText.trim()}
+              style={{ padding: '12px', fontSize: '0.9rem', width: '100%' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Analyze Syllabus
+            </button>
+          </div>
         )}
       </form>
     </div>
