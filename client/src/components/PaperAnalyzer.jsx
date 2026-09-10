@@ -33,6 +33,14 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
       return;
     }
 
+    const effectiveApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
+    const effectiveModel = modelName || localStorage.getItem('model_name') || 'gemini-3.6-flash';
+
+    if (!effectiveApiKey) {
+      setError('Gemini API Key is missing. Click "Show Controls" in the top bar, open ⚙️ Settings, and paste your Gemini API key to proceed.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -42,16 +50,15 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
       formData.append('syllabusContext', JSON.stringify(syllabusData));
       formData.append('examName', examName);
       formData.append('year', year);
-      formData.append('modelName', modelName || 'gemini-3.6-flash');
+      formData.append('modelName', effectiveModel);
 
       if (paperFile) {
         formData.append('paperFile', paperFile);
       }
 
-      const headers = {};
-      if (apiKey) {
-        headers['x-api-key'] = apiKey;
-      }
+      const headers = {
+        'x-api-key': effectiveApiKey
+      };
 
       const response = await fetch('/api/analyze-paper', {
         method: 'POST',

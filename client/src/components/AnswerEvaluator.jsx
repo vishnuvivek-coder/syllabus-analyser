@@ -66,6 +66,14 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
       return;
     }
 
+    const effectiveApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
+    const effectiveModel = modelName || localStorage.getItem('model_name') || 'gemini-3.6-flash';
+
+    if (!effectiveApiKey) {
+      setError('Gemini API Key is missing. Click "Show Controls" in the top bar, open ⚙️ Settings, and paste your Gemini API key to proceed.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setEvalResult(null);
@@ -75,7 +83,7 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
       formData.append('questionText', activeQuestionData.question);
       formData.append('modelAnswer', activeQuestionData.answer);
       formData.append('totalMarks', activeQuestionData.marks);
-      formData.append('modelName', modelName || 'gemini-3.6-flash');
+      formData.append('modelName', effectiveModel);
 
       if (submissionType === 'text') {
         formData.append('answerText', studentText);
@@ -83,10 +91,9 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
         formData.append('answerFile', answerFile);
       }
 
-      const headers = {};
-      if (apiKey) {
-        headers['x-api-key'] = apiKey;
-      }
+      const headers = {
+        'x-api-key': effectiveApiKey
+      };
 
       const response = await fetch('/api/evaluate-answer', {
         method: 'POST',

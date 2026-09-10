@@ -46,6 +46,14 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
       return;
     }
 
+    const effectiveApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
+    const effectiveModel = modelName || localStorage.getItem('model_name') || 'gemini-3.6-flash';
+
+    if (!effectiveApiKey) {
+      setError('Gemini API Key is missing. Click "Show Controls" in the top bar, open ⚙️ Settings, and paste your Gemini API key to proceed.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -55,7 +63,7 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(apiKey ? { 'x-api-key': apiKey } : {})
+          'x-api-key': effectiveApiKey
         },
         body: JSON.stringify({
           questionText: activeQuestion.question_text,
@@ -65,7 +73,7 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
           difficulty: activeQuestion.difficulty || 'Medium',
           bloomLevel: activeQuestion.bloom_level || 'Apply',
           variantCount,
-          modelName
+          modelName: effectiveModel
         })
       });
 
