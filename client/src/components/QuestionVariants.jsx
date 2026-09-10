@@ -8,11 +8,28 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
-  // Custom question fallback
-  const [useCustom, setUseCustom] = useState(false);
+  // Custom question fallback (defaults to true if bank is empty)
+  const [useCustom, setUseCustom] = useState(savedQuestions.length === 0);
   const [customQuestionText, setCustomQuestionText] = useState('');
   const [customAnswerText, setCustomAnswerText] = useState('');
   const [customTopic, setCustomTopic] = useState('');
+
+  // Auto-switch to Custom Question if bank has 0 items
+  React.useEffect(() => {
+    if (savedQuestions.length === 0) {
+      setUseCustom(true);
+    } else if (!selectedQuestionId && savedQuestions[0]?.id) {
+      setSelectedQuestionId(savedQuestions[0].id);
+    }
+  }, [savedQuestions]);
+
+  const handleFillSample = () => {
+    setUseCustom(true);
+    setCustomTopic('Machine Learning / Regularization');
+    setCustomQuestionText('Explain the mathematical formulation of L1 (Lasso) and L2 (Ridge) penalties in linear regression. In what geometric scenario does Lasso yield sparse coefficients with exact zero values?');
+    setCustomAnswerText('Lasso minimizes ||y - Xb||^2 + lambda*||b||_1. The diamond constraint of L1 norm has sharp vertices on the coordinate axes where the elliptical RSS contours often touch first, forcing coefficients to zero.');
+    setError(null);
+  };
 
   const activeQuestion = useCustom ? {
     question_text: customQuestionText,
@@ -24,8 +41,8 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
   } : savedQuestions.find(q => q.id === selectedQuestionId);
 
   const handleGenerateVariants = async () => {
-    if (!activeQuestion || !activeQuestion.question_text.trim()) {
-      setError('Please select or input a valid question first.');
+    if (!activeQuestion || !activeQuestion.question_text || !activeQuestion.question_text.trim()) {
+      setError('Please enter a question or click "Try Sample" above before generating.');
       return;
     }
 
@@ -152,8 +169,17 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
           )
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="form-label" style={{ margin: 0 }}>Topic</label>
+              <button
+                type="button"
+                onClick={handleFillSample}
+                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+              >
+                💡 Fill Sample Question
+              </button>
+            </div>
             <div>
-              <label className="form-label">Topic</label>
               <input
                 type="text"
                 className="form-input"
@@ -167,7 +193,7 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
               <textarea
                 className="form-input"
                 rows={4}
-                placeholder="Paste original question text..."
+                placeholder="Paste original question text (or click 'Fill Sample Question')..."
                 value={customQuestionText}
                 onChange={(e) => setCustomQuestionText(e.target.value)}
               />
@@ -219,11 +245,24 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
           </div>
         )}
 
+        {!activeQuestion?.question_text?.trim() && (
+          <div style={{ padding: '10px 12px', background: 'rgba(212, 161, 92, 0.12)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontSize: '0.78rem', color: 'var(--color-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>✍️ Enter a question or test sample:</span>
+            <button
+              type="button"
+              onClick={handleFillSample}
+              style={{ background: 'var(--color-primary)', color: '#0D0D0F', border: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}
+            >
+              Fill Sample
+            </button>
+          </div>
+        )}
+
         <button
           onClick={handleGenerateVariants}
-          disabled={isLoading || !activeQuestion?.question_text}
+          disabled={isLoading}
           className="btn btn-primary"
-          style={{ width: '100%', padding: '10px' }}
+          style={{ width: '100%', padding: '12px', fontSize: '0.9rem' }}
         >
           {isLoading ? 'Generating Diverse Variations...' : '⚡ Generate Question Variants'}
         </button>
