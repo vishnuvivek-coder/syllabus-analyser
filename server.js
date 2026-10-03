@@ -97,10 +97,186 @@ app.use(cors());
 app.use(express.json({ limit: '150mb' }));
 app.use(express.urlencoded({ limit: '150mb', extended: true }));
 
+async function callQwenChat(contents, systemInstruction, options = {}) {
+  const hfToken = process.env.HF_TOKEN || (options.apiKey && options.apiKey.startsWith('hf_') ? options.apiKey : null);
+  if (!hfToken) {
+    throw new Error('HF_TOKEN is not configured in server environment.');
+  }
+
+  const messages = [];
+  if (systemInstruction) {
+    const sysText = typeof systemInstruction === 'string' ? systemInstruction : (systemInstruction.parts ? systemInstruction.parts.map(p => p.text).join('\n') : String(systemInstruction));
+    messages.push({ role: 'system', content: sysText + '\n\nIMPORTANT: Output valid JSON directly without markdown code fences or conversational commentary.' });
+  }
+
+  if (Array.isArray(contents)) {
+    for (const item of contents) {
+      const role = item.role === 'model' ? 'assistant' : (item.role || 'user');
+      let text = '';
+      if (item.parts) {
+        text = item.parts.map(p => p.text || '').join('\n');
+      } else if (typeof item.content === 'string') {
+        text = item.content;
+      }
+      if (text) {
+        messages.push({ role, content: text });
+      }
+    }
+  } else if (typeof contents === 'string') {
+    messages.push({ role: 'user', content: contents });
+  }
+
+  const endpoint = 'https://router.huggingface.co/v1/chat/completions';
+  console.log(`[Qwen AI Call] Requesting via Qwen3.8-27B on Hugging Face Router...`);
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${hfToken}`
+    },
+    body: JSON.stringify({
+      model: 'Qwen/Qwen3.8-27B',
+      messages,
+      temperature: options.temperature !== undefined ? options.temperature : 0.1,
+      max_tokens: options.maxOutputTokens || 4096,
+      stream: false
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Hugging Face Qwen3.8 Router error ${response.status}: ${errText.substring(0, 250)}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.choices?.[0]?.message?.content || '';
+  console.log(`[Qwen AI Success] Response generated cleanly (${rawText.length} chars).`);
+
+  return {
+    response: {
+      text: () => rawText
+    },
+    modelUsed: 'Qwen/Qwen3.8-27B'
+  };
+}
+
+async function streamQwenChat(contents, systemInstruction, onChunk, options = {}) {
+  const hfToken = process.env.HF_TOKEN || (options.apiKey && options.apiKey.startsWith('hf_') ? options.apiKey : null);
+  if (!hfToken) {
+    throw new Error('HF_TOKEN is not configured in server environment.');
+  }
+
+  const messages = [];
+  if (systemInstruction) {
+    const sysText = typeof systemInstruction === 'string' ? systemInstruction : (systemInstruction.parts ? systemInstruction.parts.map(p => p.text).join('\n') : String(systemInstruction));
+    messages.push({ role: 'system', content: sysText + '\n\nIMPORTANT: Output valid JSON directly without markdown code fences or conversational commentary.' });
+  }
+
+  if (Array.isArray(contents)) {
+    for (const item of contents) {
+      const role = item.role === 'model' ? 'assistant' : (item.role || 'user');
+      let text = '';
+      if (item.parts) {
+        text = item.parts.map(p => p.text || '').join('\n');
+      } else if (typeof item.content === 'string') {
+        text = item.content;
+      }
+      if (text) {
+        messages.push({ role, content: text });
+      }
+    }
+  } else if (typeof contents === 'string') {
+    messages.push({ role: 'user', content: contents });
+  }
+
+  const endpoint = 'https://router.huggingface.co/v1/chat/completions';
+  console.log(`[Qwen AI Stream Call] Requesting stream via Qwen3.8-27B on Hugging Face Router...`);
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${hfToken}`
+    },
+    body: JSON.stringify({
+      model: 'Qwen/Qwen3.8-27B',
+      messages,
+      temperature: options.temperature !== undefined ? options.temperature : 0.1,
+      max_tokens: options.maxOutputTokens || 4096,
+      stream: true
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Hugging Face Qwen3.8 Router stream error ${response.status}: ${errText.substring(0, 250)}`);
+  }
+
+  let fullText = '';
+  let chunkIndex = 0;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data:')) continue;
+      if (trimmed === 'data: [DONE]') break;
+
+      try {
+        const parsed = JSON.parse(trimmed.substring(5).trim());
+        const delta = parsed.choices?.[0]?.delta?.content || '';
+        if (delta) {
+          fullText += delta;
+          chunkIndex++;
+          if (onChunk) {
+            onChunk(delta, chunkIndex, fullText);
+          }
+        }
+      } catch (err) {}
+    }
+  }
+
+  console.log(`[Qwen AI Stream Success] Stream completed cleanly (${fullText.length} chars).`);
+  return { fullText, modelUsed: 'Qwen/Qwen3.8-27B' };
+}
+
 async function generateWithFallback(apiKey, requestedModel, contents, systemInstruction, options = {}) {
-  // Normalize deprecated or legacy model names
+  const isQwen = !requestedModel || requestedModel.toLowerCase().includes('qwen') || requestedModel.toLowerCase().includes('default');
+  const hasHfToken = Boolean(process.env.HF_TOKEN);
+
+  // 1. Primary Engine: Qwen3.8-27B if HF_TOKEN is present and requested or if no Gemini key provided
+  if (hasHfToken && (isQwen || !apiKey)) {
+    try {
+      return await callQwenChat(contents, systemInstruction, { ...options, apiKey });
+    } catch (qwenErr) {
+      console.warn(`[Qwen Fallback] Qwen3.8 call failed: ${qwenErr.message}. Checking Gemini fallback...`);
+      if (!apiKey && !process.env.GEMINI_API_KEY) {
+        throw qwenErr;
+      }
+    }
+  }
+
+  // 2. Secondary Engine: Gemini with multi-model fallback
+  const geminiKey = apiKey || process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    if (hasHfToken) {
+      return await callQwenChat(contents, systemInstruction, options);
+    }
+    throw new Error('AI Service Error: No API key or Hugging Face token configured.');
+  }
+
   let normalizedRequested = requestedModel || 'gemini-3.6-flash';
-  if (['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro'].includes(normalizedRequested)) {
+  if (['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'qwen-3.8-27b'].includes(normalizedRequested)) {
     normalizedRequested = 'gemini-3.6-flash';
   }
 
@@ -115,8 +291,8 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
   let lastError = null;
   for (const modelName of fallbackModels) {
     try {
-      console.log(`[AI Call] Requesting via model "${modelName}"...`);
-      const ai = new GoogleGenerativeAI(apiKey);
+      console.log(`[Gemini Call] Requesting via model "${modelName}"...`);
+      const ai = new GoogleGenerativeAI(geminiKey);
       const model = ai.getGenerativeModel({
         model: modelName,
         generationConfig: {
@@ -130,7 +306,7 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
         systemInstruction
       }, options);
 
-      console.log(`[AI Success] Content generated cleanly using model "${modelName}".`);
+      console.log(`[Gemini Success] Content generated cleanly using model "${modelName}".`);
       return { response: result.response, modelUsed: modelName };
     } catch (err) {
       lastError = err;
@@ -151,14 +327,126 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
         msg.includes('Internal Server Error') ||
         msg.includes('502')
       ) {
-        console.warn(`[Model Fallback] Model "${modelName}" unavailable/rate-limited (${msg.substring(0, 100)}). Automatically failing over to next model...`);
+        console.warn(`[Model Fallback] Gemini "${modelName}" unavailable (${msg.substring(0, 80)}). Failing over...`);
         continue;
       }
       throw err;
     }
   }
 
-  throw new Error(`AI Service Error: All available Gemini models (${fallbackModels.join(', ')}) were exhausted or reached rate limits. Please check your Gemini API key in Settings or try again shortly.`);
+  throw new Error(`AI Service Error: All available models were exhausted. (${lastError?.message || 'Unknown error'})`);
+}
+
+function initSSE(res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (res.flushHeaders) res.flushHeaders();
+}
+
+function sendSSE(res, event, data) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  if (res.flush) res.flush();
+}
+
+async function generateStreamWithFallback(apiKey, requestedModel, contents, systemInstruction, onChunk, options = {}) {
+  const isQwen = !requestedModel || requestedModel.toLowerCase().includes('qwen') || requestedModel.toLowerCase().includes('default');
+  const hasHfToken = Boolean(process.env.HF_TOKEN);
+
+  // 1. Primary Engine: Qwen3.8-27B stream
+  if (hasHfToken && (isQwen || !apiKey)) {
+    try {
+      return await streamQwenChat(contents, systemInstruction, onChunk, { ...options, apiKey });
+    } catch (qwenErr) {
+      console.warn(`[Qwen Stream Fallback] Qwen3.8 stream failed: ${qwenErr.message}. Checking Gemini...`);
+      if (!apiKey && !process.env.GEMINI_API_KEY) {
+        throw qwenErr;
+      }
+    }
+  }
+
+  // 2. Secondary Engine: Gemini stream with multi-model fallback
+  const geminiKey = apiKey || process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    if (hasHfToken) {
+      return await streamQwenChat(contents, systemInstruction, onChunk, options);
+    }
+    throw new Error('AI Streaming Error: No API key or Hugging Face token configured.');
+  }
+
+  let normalizedRequested = requestedModel || 'gemini-3.6-flash';
+  if (['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'qwen-3.8-27b'].includes(normalizedRequested)) {
+    normalizedRequested = 'gemini-3.6-flash';
+  }
+
+  const fallbackModels = [
+    normalizedRequested,
+    'gemini-3.5-flash-lite',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-pro-preview'
+  ].filter((v, i, a) => v && a.indexOf(v) === i);
+
+  let lastError = null;
+  for (const modelName of fallbackModels) {
+    try {
+      console.log(`[Gemini Stream Call] Requesting stream via model "${modelName}"...`);
+      const ai = new GoogleGenerativeAI(geminiKey);
+      const model = ai.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: options.responseMimeType || 'application/json',
+          temperature: options.temperature !== undefined ? options.temperature : 0.1,
+          maxOutputTokens: options.maxOutputTokens || 8192
+        }
+      });
+
+      const streamResult = await model.generateContentStream({
+        contents,
+        systemInstruction
+      }, options);
+
+      let fullText = '';
+      let chunkIndex = 0;
+      for await (const chunk of streamResult.stream) {
+        const text = chunk.text();
+        fullText += text;
+        chunkIndex++;
+        if (onChunk) {
+          onChunk(text, chunkIndex, fullText);
+        }
+      }
+
+      console.log(`[Gemini Stream Success] Stream completed cleanly using model "${modelName}" (${fullText.length} chars).`);
+      return { fullText, modelUsed: modelName };
+    } catch (err) {
+      lastError = err;
+      const msg = err.message || '';
+      if (
+        msg.includes('429') || 
+        msg.includes('Quota exceeded') || 
+        msg.includes('Too Many Requests') || 
+        msg.includes('resource_exhausted') ||
+        msg.includes('404') ||
+        msg.includes('no longer available') ||
+        msg.includes('not found') ||
+        msg.includes('503') ||
+        msg.includes('Service Unavailable') ||
+        msg.includes('high demand') ||
+        msg.includes('overloaded') ||
+        msg.includes('500') ||
+        msg.includes('Internal Server Error') ||
+        msg.includes('502')
+      ) {
+        console.warn(`[Model Fallback] Gemini stream "${modelName}" unavailable (${msg.substring(0, 80)}). Failing over...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error(`AI Streaming Error: All available models were exhausted. (${lastError?.message || 'Unknown error'})`);
 }
 
 const upload = multer({
@@ -174,7 +462,7 @@ app.post('/api/analyze', upload.single('syllabusFile'), async (req, res) => {
     const learningOutcomes = req.body.learningOutcomes || '';
     const clientApiKey = req.headers['x-api-key'];
     
-    let modelName = req.body.modelName || 'gemini-3.6-flash';
+    let modelName = req.body.modelName || process.env.DEFAULT_MODEL || 'qwen-3.8-27b';
     let imagePart = null;
 
     // Handle file upload (PDF or Image)
@@ -298,7 +586,7 @@ Strictly adhere to the following JSON structure:
 
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({
         error: 'Gemini API Key is missing. Please configure it in Settings or the server env file.'
       });
@@ -342,6 +630,205 @@ Strictly adhere to the following JSON structure:
   }
 });
 
+app.post('/api/analyze-stream', upload.single('syllabusFile'), async (req, res) => {
+  initSSE(res);
+
+  try {
+    let syllabusText = req.body.syllabusText || '';
+    const classNotes = req.body.classNotes || '';
+    const videoLinks = req.body.videoLinks || '';
+    const moduleList = req.body.moduleList || '';
+    const learningOutcomes = req.body.learningOutcomes || '';
+    const clientApiKey = req.headers['x-api-key'];
+    let modelName = req.body.modelName || process.env.DEFAULT_MODEL || 'qwen-3.8-27b';
+    let imagePart = null;
+
+    sendSSE(res, 'status', { message: 'Reading and validating syllabus input...', stage: 'init' });
+
+    if (req.file) {
+      const mime = req.file.mimetype;
+      if (mime === 'application/pdf') {
+        try {
+          sendSSE(res, 'status', { message: 'Extracting text from uploaded PDF...', stage: 'pdf_parse' });
+          const pdfData = await pdfParse(req.file.buffer);
+          syllabusText = pdfData.text;
+        } catch (pdfErr) {
+          console.error('PDF parsing error in stream:', pdfErr);
+          sendSSE(res, 'error', { error: 'Failed to extract text from the uploaded PDF file.' });
+          return res.end();
+        }
+      } else if (mime.startsWith('image/')) {
+        imagePart = {
+          inlineData: {
+            data: req.file.buffer.toString('base64'),
+            mimeType: mime
+          }
+        };
+      } else {
+        sendSSE(res, 'error', { error: 'Unsupported file type. Please upload a PDF or an image.' });
+        return res.end();
+      }
+    }
+
+    syllabusText = cleanSyllabusText(syllabusText);
+
+    if (!syllabusText.trim() && !imagePart) {
+      sendSSE(res, 'error', { error: 'Syllabus content is empty. Please upload a PDF or provide syllabus text.' });
+      return res.end();
+    }
+
+    const cacheKey = crypto.createHash('sha256').update(
+      (syllabusText || '') + 
+      (imagePart ? imagePart.inlineData.data.substring(0, 1000) : '') + 
+      (moduleList || '') + 
+      (learningOutcomes || '') +
+      modelName
+    ).digest('hex');
+
+    const cached = analysisCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      console.log(`[Cache Hit] Returning instant cached analysis for stream hash ${cacheKey.substring(0, 8)}...`);
+      sendSSE(res, 'status', { message: 'Loaded from instant cache (0ms)...', cached: true });
+      sendSSE(res, 'complete', cached.data);
+      return res.end();
+    }
+
+    const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+    if (!apiKey && !process.env.HF_TOKEN) {
+      sendSSE(res, 'error', { error: 'Gemini API Key is missing. Click "Show Controls" -> Settings to enter your Gemini API key.' });
+      return res.end();
+    }
+
+    const systemPrompt = `You are an expert academic curriculum analyst.
+Your task is to analyze the provided syllabus and convert it into a structured knowledge representation in JSON format.
+
+EFFICIENCY & SPEED GUIDELINES:
+- Output clean, dense, and valid JSON immediately with zero conversational filler.
+- Keep "subtopics" to 2-3 essential items per topic.
+- Keep "application_potential" and "estimated_learning_time" concise (under 8 words each).
+- Focus "concept_dependency_graph" on the 10-15 most central core concepts and their direct prerequisite relationships.
+- Do NOT invent topics that are not supported by the syllabus.
+- If ambiguous, note it briefly in "ambiguities".
+
+Strictly adhere to the following JSON structure:
+{
+  "subject_name": "Standard Course Title",
+  "course_code": "Course Code or N/A",
+  "academic_level": "Undergraduate" | "Postgraduate" | "Introductory",
+  "total_estimated_hours": 45,
+  "modules": [
+    {
+      "module_id": "M1",
+      "module_name": "Module name or unit title",
+      "topics": [
+        {
+          "topic_id": "M1-T1",
+          "topic_name": "Topic name",
+          "subtopics": ["Subtopic 1", "Subtopic 2"],
+          "importance_score": 85,
+          "conceptual_depth": 7,
+          "prerequisite_topics": ["List of topic_ids that should be learned before this topic"],
+          "suitable_bloom_levels": ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"],
+          "suitable_question_types": ["Multiple Choice", "Short Answer", "Case Study"],
+          "estimated_learning_time": "3 hours",
+          "application_potential": "Short description of real-world application",
+          "important_concepts": ["Core concept A"],
+          "is_practical": true,
+          "is_mathematical": false,
+          "is_programming": true
+        }
+      ]
+    }
+  ],
+  "learning_outcomes": ["Outcomes listed in syllabus or inferred from topics"],
+  "ambiguities": ["List any ambiguities or missing dependencies"],
+  
+  "concept_dependency_graph": {
+    "concepts": [
+      {
+        "id": "concept_1",
+        "name": "Linear Regression",
+        "category": "foundational",
+        "prerequisites": [],
+        "dependents": ["concept_2"],
+        "related": [],
+        "contrasting": [],
+        "application_domains": ["Machine Learning"],
+        "interdisciplinary_connections": ["Statistics"],
+        "assessment_suitability": ["application"]
+      }
+    ],
+    "relationships": [
+      {
+        "source": "concept_1",
+        "target": "concept_2",
+        "type": "PREREQUISITE",
+        "strength": 0.85
+      }
+    ]
+  }
+}`;
+
+    let inputData = `--- SYLLABUS CONTENT ---\n${syllabusText}`;
+    if (moduleList) {
+      inputData += `\n\n--- MODULE/UNIT LIST FILTER ---\n${moduleList}`;
+    }
+    if (learningOutcomes) {
+      inputData += `\n\n--- TARGET LEARNING OUTCOMES ---\n${learningOutcomes}`;
+    }
+
+    const parts = [{ text: inputData }];
+    if (imagePart) {
+      parts.unshift(imagePart);
+    }
+
+    sendSSE(res, 'status', { message: 'Connecting to Gemini AI and initiating token stream...', stage: 'connecting' });
+
+    let tokenCount = 0;
+    const { fullText, modelUsed } = await generateStreamWithFallback(
+      apiKey,
+      modelName,
+      [{ role: 'user', parts }],
+      systemPrompt,
+      (delta, chunkIndex, accumulated) => {
+        tokenCount = Math.ceil(accumulated.length / 4);
+        sendSSE(res, 'chunk', {
+          delta,
+          chunkIndex,
+          charCount: accumulated.length,
+          estimatedTokens: tokenCount,
+          modelUsed
+        });
+      },
+      { timeout: 240000, temperature: 0.1 }
+    );
+
+    sendSSE(res, 'status', { message: 'Formatting curriculum nodes & concept graphs...', stage: 'parsing' });
+
+    let parsedData;
+    try {
+      parsedData = robustJSONParse(fullText);
+    } catch (parseErr) {
+      console.error('Failed to parse model stream response as JSON. Raw text was:', fullText);
+      sendSSE(res, 'error', { error: 'Syllabus analysis returned invalid JSON formatting. Please try again.' });
+      return res.end();
+    }
+
+    analysisCache.set(cacheKey, { data: parsedData, timestamp: Date.now() });
+    if (analysisCache.size > 100) {
+      const firstKey = analysisCache.keys().next().value;
+      analysisCache.delete(firstKey);
+    }
+
+    sendSSE(res, 'complete', parsedData);
+    res.end();
+  } catch (error) {
+    console.error('Error generating streaming analysis:', error);
+    sendSSE(res, 'error', { error: 'Failed to analyze syllabus: ' + error.message });
+    res.end();
+  }
+});
+
 app.post('/api/generate-exam-blueprint', async (req, res) => {
   try {
     const {
@@ -362,7 +849,7 @@ app.post('/api/generate-exam-blueprint', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -475,7 +962,7 @@ app.post('/api/generate-question', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -574,7 +1061,7 @@ app.post('/api/generate-optimized-question', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -678,7 +1165,7 @@ app.post('/api/review-question', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -785,7 +1272,7 @@ app.post('/api/refine-question', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -855,7 +1342,7 @@ app.post('/api/generate-flashcards', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -938,11 +1425,11 @@ app.post('/api/evaluate-answer', upload.single('answerFile'), async (req, res) =
     const questionText = req.body.questionText || '';
     const modelAnswer = req.body.modelAnswer || '';
     const totalMarks = parseFloat(req.body.totalMarks) || 10;
-    const modelName = req.body.modelName || 'gemini-3.6-flash';
+    const modelName = req.body.modelName || process.env.DEFAULT_MODEL || 'qwen-3.8-27b';
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -1074,7 +1561,7 @@ app.post('/api/generate-variants', async (req, res) => {
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -1157,11 +1644,11 @@ app.post('/api/analyze-paper', upload.single('paperFile'), async (req, res) => {
     const syllabusContext = req.body.syllabusContext || null;
     const examName = req.body.examName || 'Previous Year Paper';
     const year = req.body.year || '2024';
-    const modelName = req.body.modelName || 'gemini-3.6-flash';
+    const modelName = req.body.modelName || process.env.DEFAULT_MODEL || 'qwen-3.8-27b';
     const clientApiKey = req.headers['x-api-key'];
     const apiKey = (clientApiKey || process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-    if (!apiKey) {
+    if (!apiKey && !process.env.HF_TOKEN) {
       return res.status(400).json({ error: 'Gemini API Key is missing. Please configure it in Settings.' });
     }
 
@@ -1268,6 +1755,46 @@ ${typeof syllabusContext === 'object' ? JSON.stringify(syllabusContext, null, 2)
   } catch (error) {
     console.error('Error analyzing paper:', error);
     res.status(500).json({ error: 'Failed to analyze previous year paper. ' + error.message });
+  }
+});
+
+// Qwen3.8 Agent Chat API Endpoint
+app.post('/api/qwen-chat', async (req, res) => {
+  try {
+    const { messages, enableThinking = true, reasoningEffort = 'xhigh' } = req.body;
+    const hfToken = process.env.HF_TOKEN || req.headers['x-hf-token'];
+
+    if (!hfToken) {
+      return res.status(400).json({ error: 'HF_TOKEN is not configured in server environment.' });
+    }
+
+    const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${hfToken}`
+      },
+      body: JSON.stringify({
+        model: 'Qwen/Qwen3.8-27B',
+        messages: messages || [],
+        stream: false,
+        extra_body: {
+          chat_template_kwargs: { enable_thinking: enableThinking }
+        },
+        reasoning_effort: enableThinking ? reasoningEffort : undefined
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ error: errText });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Error in /api/qwen-chat:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

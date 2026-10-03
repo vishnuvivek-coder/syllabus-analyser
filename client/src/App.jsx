@@ -10,6 +10,7 @@ import QuestionVariants from './components/QuestionVariants';
 import PaperAnalyzer from './components/PaperAnalyzer';
 import ModuleList from './components/ModuleList';
 import Analytics from './components/Analytics';
+import QwenAgentWidget from './components/QwenAgentWidget';
 import { analyzeSyllabus } from './utils/api';
 
 export default function App() {
@@ -627,6 +628,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Floating Qwen3.8 Vision & Reasoning Copilot */}
+      <QwenAgentWidget />
     </div>
   );
 }
