@@ -498,35 +498,7 @@ export default function App() {
               </div>
             )}
 
-            {/* Role Contextual Helper Banner */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 16px',
-              borderRadius: 'var(--radius-sm)',
-              background: user.role === 'faculty' ? 'rgba(212, 161, 92, 0.08)' : 'rgba(123, 174, 127, 0.08)',
-              border: `1px solid ${user.role === 'faculty' ? 'rgba(212, 161, 92, 0.25)' : 'rgba(123, 174, 127, 0.25)'}`,
-              fontSize: '0.8rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.1rem' }}>{user.avatar}</span>
-                <span style={{ fontWeight: '700', color: user.role === 'faculty' ? 'var(--color-primary)' : '#7BAE7F' }}>
-                  {user.role === 'faculty' ? 'Faculty Mode Active:' : 'Student Mode Active:'}
-                </span>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  {user.role === 'faculty'
-                    ? 'Design Bloom-aligned exams, generate variant question sets (Sets A/B/C) to prevent copying, and curate course questions.'
-                    : 'Explore prerequisite study pathways, practice with revision flashcards, and submit answers for instant AI grading.'}
-                </span>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className={`badge ${user.role === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ fontSize: '0.68rem' }}>
-                  {user.badge}
-                </span>
-              </div>
-            </div>
 
             {/* Navigation Tabs (Tailored per role) */}
             <div className="glass-panel" style={{ padding: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
