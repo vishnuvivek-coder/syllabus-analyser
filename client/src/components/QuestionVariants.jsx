@@ -47,7 +47,7 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
     }
 
     const effectiveApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
-    const effectiveModel = modelName || localStorage.getItem('model_name') || 'qwen-3.8-27b';
+    const effectiveModel = modelName || localStorage.getItem('model_name') || 'gemini-2.5-flash';
 
     setIsLoading(true);
     setError(null);

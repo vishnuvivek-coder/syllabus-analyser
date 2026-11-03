@@ -10,10 +10,20 @@ import QuestionVariants from './components/QuestionVariants';
 import PaperAnalyzer from './components/PaperAnalyzer';
 import ModuleList from './components/ModuleList';
 import Analytics from './components/Analytics';
-import QwenAgentWidget from './components/QwenAgentWidget';
+import LoginPage, { DEMO_USERS } from './components/LoginPage';
 import { analyzeSyllabus } from './utils/api';
 
 export default function App() {
+  // Authentication State
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('syllabus_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('graph');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +47,33 @@ export default function App() {
     }
   });
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
+
+  const handleLogin = (userObj) => {
+    setUser(userObj);
+    localStorage.setItem('syllabus_auth_user', JSON.stringify(userObj));
+    if (userObj.role === 'faculty') {
+      setActiveTab('blueprint');
+    } else {
+      setActiveTab('graph');
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('syllabus_auth_user');
+  };
+
+  const handleSwitchRole = () => {
+    const newRole = user?.role === 'faculty' ? 'student' : 'faculty';
+    const newUser = DEMO_USERS[newRole];
+    setUser(newUser);
+    localStorage.setItem('syllabus_auth_user', JSON.stringify(newUser));
+    if (newRole === 'faculty') {
+      setActiveTab('blueprint');
+    } else {
+      setActiveTab('graph');
+    }
+  };
 
   const handleAnalyze = async (inputs) => {
     setIsLoading(true);
@@ -142,6 +179,10 @@ export default function App() {
     setActiveTab('lab');
   };
 
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       
@@ -194,58 +235,112 @@ export default function App() {
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: 'var(--color-primary)',
+              background: user.role === 'faculty' ? 'var(--color-primary)' : '#7BAE7F',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 14px rgba(212, 161, 92, 0.35)'
+              boxShadow: user.role === 'faculty' ? '0 2px 14px rgba(212, 161, 92, 0.35)' : '0 2px 14px rgba(123, 174, 127, 0.35)'
             }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D0D0F" strokeWidth="2.4">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
               </svg>
             </div>
             <div>
-              <h1 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-serif)', fontWeight: '700', lineHeight: 1.1 }}>
-                Syllabus Engine
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-serif)', fontWeight: '700', lineHeight: 1.1 }}>
+                  Syllabus Engine
+                </h1>
+                <span className={`badge ${user.role === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                  {user.role === 'faculty' ? 'Faculty Portal' : 'Student Portal'}
+                </span>
+              </div>
               <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', letterSpacing: '0.04em', fontWeight: '500' }}>
-                CURRICULUM ARCHITECTURE & ASSESSMENT PLATFORM
+                {user.role === 'faculty' ? 'CURRICULUM ARCHITECTURE & EXAMINATION DESIGN' : 'LEARNING ROADMAPS & ACTIVE REVISION'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Right Side: Active Subject & Controls */}
-        {data && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              padding: '6px 12px',
-              borderRadius: '6px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '0.8rem',
-              fontWeight: '500'
-            }}>
-              Subject: <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{data.subject_name}</span>
-            </div>
-            
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-              className="btn btn-secondary" 
-              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-            >
-              {isSidebarOpen ? 'Hide Controls' : 'Show Controls'}
-            </button>
+        {/* Right Side: Active Subject & User Profile Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {data && (
+            <>
+              <div style={{
+                padding: '5px 10px',
+                borderRadius: '6px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.78rem',
+                fontWeight: '500'
+              }}>
+                Subject: <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{data.subject_name}</span>
+              </div>
 
-            <button 
-              onClick={handleResetAnalysis} 
-              className="btn btn-secondary" 
-              style={{ padding: '6px 12px', fontSize: '0.8rem', color: 'var(--color-accent)' }}
-            >
-              New Analysis
-            </button>
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                className="btn btn-secondary" 
+                style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+              >
+                {isSidebarOpen ? 'Hide Controls' : 'Show Controls'}
+              </button>
+
+              <button 
+                onClick={handleResetAnalysis} 
+                className="btn btn-secondary" 
+                style={{ padding: '5px 10px', fontSize: '0.78rem', color: 'var(--color-accent)' }}
+              >
+                New Analysis
+              </button>
+            </>
+          )}
+
+          <div style={{ width: '1px', height: '22px', background: 'var(--border-subtle)' }} />
+
+          {/* User Profile Pill */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '4px 10px',
+            background: 'var(--bg-elevated)',
+            borderRadius: '20px',
+            border: `1px solid ${user.role === 'faculty' ? 'rgba(212, 161, 92, 0.3)' : 'rgba(123, 174, 127, 0.3)'}`
+          }}>
+            <span style={{ fontSize: '1.05rem' }}>{user.avatar}</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1.1 }}>
+                {user.name}
+              </span>
+              <span style={{ fontSize: '0.65rem', color: user.role === 'faculty' ? 'var(--color-primary)' : '#7BAE7F', fontWeight: '600' }}>
+                {user.badge}
+              </span>
+            </div>
           </div>
-        )}
+
+          {/* Switch Role Quick Button */}
+          <button
+            type="button"
+            onClick={handleSwitchRole}
+            className="btn btn-secondary"
+            style={{ padding: '5px 10px', fontSize: '0.74rem' }}
+            title="Switch between Faculty and Student roles"
+          >
+            <span>🔄</span>
+            <span>Switch to {user.role === 'faculty' ? 'Student' : 'Faculty'}</span>
+          </button>
+
+          {/* Sign Out Button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="btn btn-secondary"
+            style={{ padding: '5px 10px', fontSize: '0.74rem', color: 'var(--color-danger)' }}
+            title="Log out of current account"
+          >
+            <span>🚪</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
       </header>
 
       {/* Slide-out Top-Left Analysis History Drawer */}
@@ -403,78 +498,181 @@ export default function App() {
               </div>
             )}
 
-            {/* Navigation Tabs */}
+            {/* Role Contextual Helper Banner */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-sm)',
+              background: user.role === 'faculty' ? 'rgba(212, 161, 92, 0.08)' : 'rgba(123, 174, 127, 0.08)',
+              border: `1px solid ${user.role === 'faculty' ? 'rgba(212, 161, 92, 0.25)' : 'rgba(123, 174, 127, 0.25)'}`,
+              fontSize: '0.8rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.1rem' }}>{user.avatar}</span>
+                <span style={{ fontWeight: '700', color: user.role === 'faculty' ? 'var(--color-primary)' : '#7BAE7F' }}>
+                  {user.role === 'faculty' ? 'Faculty Mode Active:' : 'Student Mode Active:'}
+                </span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  {user.role === 'faculty'
+                    ? 'Design Bloom-aligned exams, generate variant question sets (Sets A/B/C) to prevent copying, and curate course questions.'
+                    : 'Explore prerequisite study pathways, practice with revision flashcards, and submit answers for instant AI grading.'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className={`badge ${user.role === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ fontSize: '0.68rem' }}>
+                  {user.badge}
+                </span>
+              </div>
+            </div>
+
+            {/* Navigation Tabs (Tailored per role) */}
             <div className="glass-panel" style={{ padding: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              <button 
-                onClick={() => setActiveTab('graph')} 
-                className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                Map
-              </button>
-              <button 
-                onClick={() => setActiveTab('concepts')} 
-                className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                Concepts
-              </button>
-              <button 
-                onClick={() => setActiveTab('blueprint')} 
-                className={`btn ${activeTab === 'blueprint' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                Exam Designer
-              </button>
-              <button 
-                onClick={() => setActiveTab('lab')} 
-                className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                Question Lab
-              </button>
-              <button 
-                onClick={() => setActiveTab('variants')} 
-                className={`btn ${activeTab === 'variants' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                🔀 Variants
-              </button>
-              <button 
-                onClick={() => setActiveTab('evaluator')} 
-                className={`btn ${activeTab === 'evaluator' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                ✍️ Evaluator
-              </button>
-              <button 
-                onClick={() => setActiveTab('pastpapers')} 
-                className={`btn ${activeTab === 'pastpapers' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                🔄 Past Papers
-              </button>
-              <button 
-                onClick={() => setActiveTab('flashcards')} 
-                className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                🗂️ Flashcards
-              </button>
-              <button 
-                onClick={() => setActiveTab('modules')} 
-                className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                Curriculum
-              </button>
-              <button 
-                onClick={() => setActiveTab('analytics')} 
-                className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
-              >
-                📊 Analytics
-              </button>
+              {user.role === 'faculty' ? (
+                <>
+                  <button 
+                    onClick={() => setActiveTab('blueprint')} 
+                    className={`btn ${activeTab === 'blueprint' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Design official exam papers with Bloom taxonomy"
+                  >
+                    📐 Exam Designer
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('variants')} 
+                    className={`btn ${activeTab === 'variants' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Generate multi-set exam questions (Set A, B, C) to prevent cheating"
+                  >
+                    🔀 Question Variants
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('lab')} 
+                    className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Author and curate departmental question repository"
+                  >
+                    🧪 Question Lab
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('pastpapers')} 
+                    className={`btn ${activeTab === 'pastpapers' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Audit previous year papers for syllabus coverage gaps"
+                  >
+                    📑 Paper Auditor
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('graph')} 
+                    className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="View syllabus prerequisite architecture"
+                  >
+                    🗺️ Knowledge Map
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('concepts')} 
+                    className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Inspect concept dependency flows"
+                  >
+                    💡 Concepts
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('modules')} 
+                    className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Module structure and learning outcomes"
+                  >
+                    📚 Curriculum
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('analytics')} 
+                    className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Course cognitive depth and Bloom distribution"
+                  >
+                    📊 Analytics
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('evaluator')} 
+                    className={`btn ${activeTab === 'evaluator' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Grade and evaluate student answer submissions"
+                  >
+                    ✍️ Evaluator
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setActiveTab('graph')} 
+                    className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Interactive roadmap showing what to learn first"
+                  >
+                    🗺️ Learning Map
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('concepts')} 
+                    className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Concept dependencies and prerequisite paths"
+                  >
+                    💡 Concept Flow
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('flashcards')} 
+                    className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Active recall flashcard decks for quick exam revision"
+                  >
+                    🗂️ AI Flashcards
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('evaluator')} 
+                    className={`btn ${activeTab === 'evaluator' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Test your answers and get instant private grading and feedback"
+                  >
+                    ✍️ AI Evaluator
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('lab')} 
+                    className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Practice solving questions by topic"
+                  >
+                    📝 Practice Lab
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('modules')} 
+                    className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Review course modules and key topics"
+                  >
+                    📚 Study Modules
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('pastpapers')} 
+                    className={`btn ${activeTab === 'pastpapers' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Explore recurring previous exam questions"
+                  >
+                    🔄 Past Papers
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('analytics')} 
+                    className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    title="Track syllabus coverage and difficulty distribution"
+                  >
+                    📊 Coverage
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
@@ -603,16 +801,26 @@ export default function App() {
                 zIndex: 0
               }} />
 
-              <span className="badge badge-violet" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.7rem', zIndex: 1 }}>
-                ACADEMIC ARCHITECTURE ENGINE
+              <span className={`badge ${user.role === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.7rem', zIndex: 1 }}>
+                {user.role === 'faculty' ? 'FACULTY & INSTRUCTOR PORTAL' : 'STUDENT & LEARNER STUDY PORTAL'}
               </span>
 
               <h1 style={{ fontSize: '3rem', fontFamily: 'var(--font-serif)', fontWeight: '700', lineHeight: '1.16', color: 'var(--text-primary)', margin: '4px 0', zIndex: 1 }}>
-                Curriculum Intelligence & <span style={{ color: 'var(--color-primary)', fontStyle: 'italic', textShadow: '0 0 30px rgba(212, 161, 92, 0.3)' }}>Assessment Mapping</span>
+                {user.role === 'faculty' ? (
+                  <>
+                    Curriculum Intelligence & <span style={{ color: 'var(--color-primary)', fontStyle: 'italic', textShadow: '0 0 30px rgba(212, 161, 92, 0.3)' }}>Assessment Architecture</span>
+                  </>
+                ) : (
+                  <>
+                    Interactive Learning Roadmaps & <span style={{ color: '#7BAE7F', fontStyle: 'italic', textShadow: '0 0 30px rgba(123, 174, 127, 0.3)' }}>Exam Preparation</span>
+                  </>
+                )}
               </h1>
 
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.96rem', lineHeight: '1.65', maxWidth: '580px', fontWeight: '400', zIndex: 1 }}>
-                Upload a course syllabus PDF, paste lecture notes, or attach screenshots to construct prerequisite dependency flows, Bloom's taxonomy weights, and examination blueprints.
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.96rem', lineHeight: '1.65', maxWidth: '620px', fontWeight: '400', zIndex: 1 }}>
+                {user.role === 'faculty' 
+                  ? 'Upload an accredited course syllabus, paste textbook chapters, or attach past papers to generate Bloom-aligned exam blueprints, multi-set variants (Set A/B/C), and question banks.'
+                  : 'Upload your syllabus or lecture notes to generate interactive prerequisite dependency graphs, active recall flashcards, and submit practice answers for instant AI grading.'}
               </p>
             </div>
 
@@ -629,8 +837,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating Qwen3.8 Vision & Reasoning Copilot */}
-      <QwenAgentWidget />
+
     </div>
   );
 }
