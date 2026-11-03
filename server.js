@@ -1295,15 +1295,21 @@ app.post('/api/evaluate-answer', upload.single('answerFile'), async (req, res) =
       return res.status(400).json({ error: 'Please provide student answer text or upload an answer sheet image/PDF.' });
     }
 
-    const systemPrompt = `You are a fair, rigorous, and constructive university professor and answer script examiner.
-Your task is to thoroughly evaluate the student's submitted answer against the official question and model answer outline.
+    const systemPrompt = `You are a fair, rigorous, and constructive university professor and answer script examiner, equipped with a Multimodal Vision Neural Network for deep handwriting analysis and document evaluation.
+Your task is to thoroughly transcribe and evaluate the student's submitted answer (whether handwritten image or typed text) against the official question and model answer outline.
 
-GRADING PRINCIPLES:
-1. Award proportional partial credit for correct steps, formulas, and reasoning.
-2. Deduct marks specifically for conceptual errors, calculation mistakes, omissions, or invalid assumptions.
-3. Max Marks for this question is: ${totalMarks}. Total score MUST be between 0 and ${totalMarks}.
-4. Provide structured, constructive feedback that helps the student master the topic.
-5. All mathematical formulas MUST be formatted with LaTeX standard delimiters ($...$ or $$...$$).
+NEURAL HANDWRITING & EXAM EVALUATION PRINCIPLES:
+1. NEURAL SCRIPT RECOGNITION:
+   - Carefully decipher messy, cursive, or fast exam handwriting from the paper.
+   - Detect mathematical notations (integrals, summations, fractions, sub/superscripts) and transcribe into valid LaTeX ($...$ or $$...$$).
+   - Identify hand-drawn diagrams, schematics, graphs, and labels.
+   - Gauge handwriting legibility (0-100), stroke clarity, and visual presentation.
+
+2. ACADEMIC EVALUATION & GRADING:
+   - Award proportional partial credit for correct steps, formulas, and reasoning.
+   - Deduct marks specifically for conceptual errors, calculation mistakes, omissions, or invalid assumptions.
+   - Max Marks for this question is: ${totalMarks}. Total score MUST be between 0 and ${totalMarks}.
+   - Provide structured, constructive feedback that helps the student master the topic.
 
 Format the output strictly as JSON following this structure:
 {
@@ -1312,6 +1318,29 @@ Format the output strictly as JSON following this structure:
   "percentage": 85,
   "overall_grade": "A" | "B" | "C" | "D" | "F",
   "summary": "2-3 sentence overview of student performance and conceptual grasp",
+  "handwriting_analysis": {
+    "is_handwritten": true,
+    "legibility_score": 88,
+    "legibility_grade": "Excellent" | "Good" | "Fair" | "Challenging to Read",
+    "stroke_clarity_assessment": "Clear cursive script with distinct superscripts and good line spacing.",
+    "transcribed_text": "Full word-for-word transcription of what the student wrote on the answer sheet, preserving step structure.",
+    "detected_equations": [
+      {
+        "raw_visual": "dy/dx + Py = Q",
+        "latex": "\\frac{dy}{dx} + P(x)y = Q(x)",
+        "is_correctly_written": true,
+        "note": "Standard first-order linear differential form correctly set up"
+      }
+    ],
+    "detected_diagrams": [
+      {
+        "label": "Free Body Diagram / Circuit Schema",
+        "quality": "Good / Clear",
+        "feedback": "Axes and arrows clearly labeled."
+      }
+    ],
+    "presentation_tips": "Suggestions to improve answer sheet layout, margins, and handwriting neatness for examiners."
+  },
   "section_scores": [
     {
       "criterion": "Conceptual Clarity & Definition",

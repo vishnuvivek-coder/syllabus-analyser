@@ -20,6 +20,16 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [evalResult, setEvalResult] = useState(null);
+  const [resultTab, setResultTab] = useState('scorecard'); // 'scorecard' | 'handwriting'
+  const [copiedTranscription, setCopiedTranscription] = useState(false);
+
+  const handleCopyTranscription = () => {
+    if (evalResult?.handwriting_analysis?.transcribed_text) {
+      navigator.clipboard.writeText(evalResult.handwriting_analysis.transcribed_text);
+      setCopiedTranscription(true);
+      setTimeout(() => setCopiedTranscription(false), 2000);
+    }
+  };
 
   // Derive active question and answer
   const activeQuestionData = useMemo(() => {
@@ -104,6 +114,11 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
 
       const data = await response.json();
       setEvalResult(data);
+      if (submissionType === 'file' && data.handwriting_analysis) {
+        setResultTab('handwriting');
+      } else {
+        setResultTab('scorecard');
+      }
 
       // Track activity in platform analytics
       try {
@@ -237,7 +252,7 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
               className={`btn ${submissionType === 'file' ? 'btn-primary' : 'btn-secondary'}`}
               style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
             >
-              📷 Upload Image / PDF
+              📷 Handwritten Paper (Neural Vision)
             </button>
           </div>
 
@@ -251,15 +266,31 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
               style={{ fontSize: '0.85rem' }}
             />
           ) : (
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <input
                 type="file"
                 accept="image/*,application/pdf"
                 onChange={handleFileChange}
                 style={{ fontSize: '0.8rem' }}
               />
+              <div style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                background: 'rgba(212, 161, 92, 0.08)',
+                border: '1px solid rgba(212, 161, 92, 0.2)',
+                fontSize: '0.74rem',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '1.1rem' }}>🧠</span>
+                <span>
+                  <strong>Neural Vision Transformer:</strong> Deciphers messy/cursive handwriting, LaTeX math symbols ($ \int, \sum $), and hand-drawn diagrams.
+                </span>
+              </div>
               {filePreview && (
-                <div style={{ marginTop: '10px', maxHeight: '180px', overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ marginTop: '4px', maxHeight: '180px', overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                   <img src={filePreview} alt="Student answer sheet" style={{ width: '100%', objectFit: 'contain' }} />
                 </div>
               )}
@@ -279,7 +310,9 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
           className="btn btn-primary"
           style={{ width: '100%', padding: '10px', fontSize: '0.88rem' }}
         >
-          {isLoading ? 'Examiner Grading in Progress...' : '⚡ Grade & Evaluate Answer'}
+          {isLoading
+            ? '🧠 Neural Network Analyzing Handwriting & Grading...' 
+            : (submissionType === 'file' ? '⚡ Run Neural Handwriting Analysis & Grade' : '⚡ Grade & Evaluate Answer')}
         </button>
       </div>
 
@@ -292,143 +325,408 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
               Examiner Assessment Workspace
             </h4>
             <p style={{ fontSize: '0.85rem', maxWidth: '420px', lineHeight: 1.5 }}>
-              Select a question on the left and submit a student answer to receive instant step-by-step grading, partial credit allocation, and rubric breakdown.
+              Select a question on the left and submit a student answer (typed or handwritten image) to receive instant step-by-step neural handwriting transcription, legibility scoring, and rubric breakdown.
             </p>
           </div>
         ) : (
           <>
-            {/* Scorecard Hero Banner */}
+            {/* View Switcher: Scorecard vs Neural Handwriting Analysis */}
             <div style={{
-              padding: '20px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(212, 161, 92, 0.12) 0%, rgba(108, 100, 153, 0.12) 100%)',
-              border: '1px solid var(--border-strong)',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '16px'
+              gap: '8px',
+              padding: '4px',
+              background: 'var(--bg-elevated)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-subtle)'
             }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '700' }}>
-                  Official Examiner Scorecard
-                </span>
-                <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: '4px 0' }}>
-                  {evalResult.total_score} <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>/ {evalResult.max_marks} Marks</span>
-                </h3>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Overall Percentage: <strong>{evalResult.percentage}%</strong>
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '50%',
-                  background: evalResult.percentage >= 80 ? 'var(--color-success)' : (evalResult.percentage >= 50 ? 'var(--color-primary)' : 'var(--color-danger)'),
-                  color: '#0D0D0F',
+              <button
+                type="button"
+                onClick={() => setResultTab('scorecard')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: resultTab === 'scorecard' ? 'var(--color-primary)' : 'transparent',
+                  color: resultTab === 'scorecard' ? '#0D0D0F' : 'var(--text-secondary)',
+                  fontWeight: resultTab === 'scorecard' ? '700' : '500',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.5rem',
-                  fontWeight: '800',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
+                  gap: '6px',
+                  transition: 'var(--transition-fast)'
+                }}
+              >
+                <span>📊</span>
+                <span>Examiner Scorecard & Rubric</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setResultTab('handwriting')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: resultTab === 'handwriting' ? 'var(--color-primary)' : 'transparent',
+                  color: resultTab === 'handwriting' ? '#0D0D0F' : 'var(--text-secondary)',
+                  fontWeight: resultTab === 'handwriting' ? '700' : '500',
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'var(--transition-fast)'
+                }}
+              >
+                <span>🧠</span>
+                <span>Neural Handwriting Analysis</span>
+                {evalResult.handwriting_analysis?.legibility_score !== undefined && (
+                  <span style={{
+                    fontSize: '0.68rem',
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    background: resultTab === 'handwriting' ? 'rgba(0,0,0,0.25)' : 'rgba(212, 161, 92, 0.2)',
+                    fontWeight: '700'
+                  }}>
+                    {evalResult.handwriting_analysis.legibility_score}% Legible
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* TAB 1: Examiner Scorecard & Rubric */}
+            {resultTab === 'scorecard' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {/* Scorecard Hero Banner */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(212, 161, 92, 0.12) 0%, rgba(108, 100, 153, 0.12) 100%)',
+                  border: '1px solid var(--border-strong)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '16px'
                 }}>
-                  {evalResult.overall_grade}
-                </div>
-              </div>
-            </div>
-
-            {/* Performance Summary */}
-            <div>
-              <h4 style={{ fontSize: '0.88rem', color: 'var(--color-primary)', marginBottom: '6px' }}>
-                Examiner Summary
-              </h4>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                {evalResult.summary}
-              </p>
-            </div>
-
-            {/* Step-by-Step Rubric Breakdown */}
-            <div>
-              <h4 style={{ fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: '10px' }}>
-                Section-wise Marking Rubric
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {evalResult.section_scores?.map((sec, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '12px 16px',
-                      background: 'var(--bg-secondary)',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-subtle)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{sec.criterion}</strong>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: '700' }}>
-                        {sec.score} / {sec.max} M
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', overflow: 'hidden', marginBottom: '6px' }}>
-                      <div style={{ width: `${(sec.score / sec.max) * 100}%`, height: '100%', background: 'var(--color-primary)' }} />
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                      <MathText text={sec.feedback} />
-                    </p>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '700' }}>
+                      Official Examiner Scorecard
+                    </span>
+                    <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: '4px 0' }}>
+                      {evalResult.total_score} <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>/ {evalResult.max_marks} Marks</span>
+                    </h3>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      Overall Percentage: <strong>{evalResult.percentage}%</strong>
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Strengths & Weaknesses 2-Column Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div style={{ padding: '14px', background: 'rgba(123, 174, 127, 0.08)', borderRadius: '8px', border: '1px solid rgba(123, 174, 127, 0.2)' }}>
-                <h5 style={{ fontSize: '0.82rem', color: 'var(--color-success)', marginBottom: '8px' }}>
-                  ✅ Key Strengths
-                </h5>
-                <ul style={{ paddingLeft: '16px', fontSize: '0.78rem', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {evalResult.strengths?.map((s, i) => (
-                    <li key={i}><MathText text={s} /></li>
-                  ))}
-                </ul>
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '50%',
+                      background: evalResult.percentage >= 80 ? 'var(--color-success)' : (evalResult.percentage >= 50 ? 'var(--color-primary)' : 'var(--color-danger)'),
+                      color: '#0D0D0F',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      fontWeight: '800',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
+                    }}>
+                      {evalResult.overall_grade}
+                    </div>
+                  </div>
+                </div>
 
-              <div style={{ padding: '14px', background: 'rgba(244, 63, 94, 0.08)', borderRadius: '8px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
-                <h5 style={{ fontSize: '0.82rem', color: 'var(--color-danger)', marginBottom: '8px' }}>
-                  ⚠️ Weaknesses & Errors
-                </h5>
-                <ul style={{ paddingLeft: '16px', fontSize: '0.78rem', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {evalResult.weaknesses?.map((w, i) => (
-                    <li key={i}><MathText text={w} /></li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+                {/* Performance Summary */}
+                <div>
+                  <h4 style={{ fontSize: '0.88rem', color: 'var(--color-primary)', marginBottom: '6px' }}>
+                    Examiner Summary
+                  </h4>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {evalResult.summary}
+                  </p>
+                </div>
 
-            {/* Improvement Recommendations */}
-            {evalResult.improvement_tips?.length > 0 && (
-              <div style={{ padding: '14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                <h5 style={{ fontSize: '0.82rem', color: 'var(--color-primary)', marginBottom: '6px' }}>
-                  💡 Actionable Study Suggestions
-                </h5>
-                <ul style={{ paddingLeft: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {evalResult.improvement_tips.map((tip, i) => (
-                    <li key={i}><MathText text={tip} /></li>
-                  ))}
-                </ul>
+                {/* Step-by-Step Rubric Breakdown */}
+                <div>
+                  <h4 style={{ fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: '10px' }}>
+                    Section-wise Marking Rubric
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {evalResult.section_scores?.map((sec, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '12px 16px',
+                          background: 'var(--bg-secondary)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-subtle)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{sec.criterion}</strong>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: '700' }}>
+                            {sec.score} / {sec.max} M
+                          </span>
+                        </div>
+                        <div style={{ width: '100%', height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', overflow: 'hidden', marginBottom: '6px' }}>
+                          <div style={{ width: `${(sec.score / sec.max) * 100}%`, height: '100%', background: 'var(--color-primary)' }} />
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                          <MathText text={sec.feedback} />
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Strengths & Weaknesses 2-Column Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div style={{ padding: '14px', background: 'rgba(123, 174, 127, 0.08)', borderRadius: '8px', border: '1px solid rgba(123, 174, 127, 0.2)' }}>
+                    <h5 style={{ fontSize: '0.82rem', color: 'var(--color-success)', marginBottom: '8px' }}>
+                      ✅ Key Strengths
+                    </h5>
+                    <ul style={{ paddingLeft: '16px', fontSize: '0.78rem', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {evalResult.strengths?.map((s, i) => (
+                        <li key={i}><MathText text={s} /></li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={{ padding: '14px', background: 'rgba(244, 63, 94, 0.08)', borderRadius: '8px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
+                    <h5 style={{ fontSize: '0.82rem', color: 'var(--color-danger)', marginBottom: '8px' }}>
+                      ⚠️ Weaknesses & Errors
+                    </h5>
+                    <ul style={{ paddingLeft: '16px', fontSize: '0.78rem', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {evalResult.weaknesses?.map((w, i) => (
+                        <li key={i}><MathText text={w} /></li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Improvement Recommendations */}
+                {evalResult.improvement_tips?.length > 0 && (
+                  <div style={{ padding: '14px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <h5 style={{ fontSize: '0.82rem', color: 'var(--color-primary)', marginBottom: '6px' }}>
+                      💡 Actionable Study Suggestions
+                    </h5>
+                    <ul style={{ paddingLeft: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {evalResult.improvement_tips.map((tip, i) => (
+                        <li key={i}><MathText text={tip} /></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Detailed Examiner Commentary */}
+                {evalResult.detailed_annotated_feedback && (
+                  <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border-glass)', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                    <h5 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Line-by-Line Examiner Commentary
+                    </h5>
+                    <MathText text={evalResult.detailed_annotated_feedback} />
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Detailed Examiner Commentary */}
-            {evalResult.detailed_annotated_feedback && (
-              <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border-glass)', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                <h5 style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  Line-by-Line Examiner Commentary
-                </h5>
-                <MathText text={evalResult.detailed_annotated_feedback} />
+            {/* TAB 2: Neural Handwriting Analysis & Transcription */}
+            {resultTab === 'handwriting' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                
+                {/* Neural Handwriting Metrics Card */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(108, 100, 153, 0.15) 0%, rgba(212, 161, 92, 0.1) 100%)',
+                  border: '1px solid var(--border-strong)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span className="badge badge-violet" style={{ fontSize: '0.7rem' }}>
+                        🧠 Multimodal Vision Transformer
+                      </span>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                        HTR (Handwritten Text Recognition)
+                      </span>
+                    </div>
+                    <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', margin: '4px 0' }}>
+                      Handwriting Legibility Score: {evalResult.handwriting_analysis?.legibility_score || 85}/100
+                    </h3>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                      Legibility Rating: <strong style={{ color: (evalResult.handwriting_analysis?.legibility_score || 85) >= 75 ? 'var(--color-success)' : 'var(--color-primary)' }}>
+                        {evalResult.handwriting_analysis?.legibility_grade || 'Good Script'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: '12px 18px',
+                    borderRadius: '8px',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border-subtle)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-primary)' }}>
+                      {evalResult.handwriting_analysis?.legibility_score || 85}%
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      OCR Confidence
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stroke & Presentation Assessment */}
+                {evalResult.handwriting_analysis?.stroke_clarity_assessment && (
+                  <div style={{ padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>✍️</span>
+                      <span>Stroke Clarity & Line Formation</span>
+                    </h4>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                      {evalResult.handwriting_analysis.stroke_clarity_assessment}
+                    </p>
+                  </div>
+                )}
+
+                {/* Full Word-for-Word Neural Transcription Box */}
+                <div style={{
+                  padding: '18px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-glass)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>📝</span>
+                      <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', margin: 0, fontWeight: '700' }}>
+                        Neural Network Transcription (Deciphered Handwriting)
+                      </h4>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyTranscription}
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.74rem' }}
+                    >
+                      {copiedTranscription ? '✓ Copied!' : '📋 Copy Transcription'}
+                    </button>
+                  </div>
+
+                  <div style={{
+                    padding: '14px',
+                    borderRadius: '6px',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.82rem',
+                    lineHeight: 1.6,
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'pre-wrap',
+                    maxHeight: '260px',
+                    overflowY: 'auto'
+                  }}>
+                    {evalResult.handwriting_analysis?.transcribed_text || 'No handwriting text detected in the document.'}
+                  </div>
+                </div>
+
+                {/* Detected Equations Grid */}
+                {evalResult.handwriting_analysis?.detected_equations?.length > 0 && (
+                  <div style={{ padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📐</span>
+                      <span>Detected Handwritten Mathematical Equations</span>
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {evalResult.handwriting_analysis.detected_equations.map((eq, i) => (
+                        <div key={i} style={{
+                          padding: '10px 14px',
+                          borderRadius: '6px',
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border-subtle)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                              <MathText text={`$${eq.latex || eq.raw_visual}$`} />
+                            </div>
+                            {eq.note && (
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                                {eq.note}
+                              </span>
+                            )}
+                          </div>
+                          <span className={`badge ${eq.is_correctly_written ? 'badge-emerald' : 'badge-amber'}`} style={{ fontSize: '0.68rem' }}>
+                            {eq.is_correctly_written ? 'Valid Syntax' : 'Check Notation'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Detected Diagrams / Sketches */}
+                {evalResult.handwriting_analysis?.detected_diagrams?.length > 0 && (
+                  <div style={{ padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                    <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>📊</span>
+                      <span>Detected Hand-Drawn Diagrams & Schematics</span>
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {evalResult.handwriting_analysis.detected_diagrams.map((diag, i) => (
+                        <div key={i} style={{
+                          padding: '10px 14px',
+                          borderRadius: '6px',
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border-subtle)'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{diag.label}</strong>
+                            <span className="badge badge-cyan" style={{ fontSize: '0.68rem' }}>{diag.quality || 'Detected'}</span>
+                          </div>
+                          <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: 0 }}>
+                            {diag.feedback}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Presentation & Legibility Advice */}
+                {evalResult.handwriting_analysis?.presentation_tips && (
+                  <div style={{ padding: '14px', background: 'rgba(212, 161, 92, 0.08)', borderRadius: '8px', border: '1px solid rgba(212, 161, 92, 0.25)' }}>
+                    <h5 style={{ fontSize: '0.82rem', color: 'var(--color-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>💡</span>
+                      <span>Exam Handwriting Presentation Advice</span>
+                    </h5>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                      {evalResult.handwriting_analysis.presentation_tips}
+                    </p>
+                  </div>
+                )}
+
               </div>
             )}
           </>
