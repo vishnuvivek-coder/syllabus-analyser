@@ -118,12 +118,12 @@ export default function LoginPage({ onLogin }) {
       {/* Main Container */}
       <div style={{
         width: '100%',
-        maxWidth: '1040px',
+        maxWidth: '520px',
         zIndex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '28px'
+        gap: '24px'
       }}>
         
         {/* Academic Header Branding */}
@@ -151,43 +151,35 @@ export default function LoginPage({ onLogin }) {
           </div>
 
           <h1 style={{
-            fontSize: '2.5rem',
+            fontSize: '2.2rem',
             fontFamily: 'var(--font-serif)',
             fontWeight: '700',
             color: 'var(--text-primary)',
             lineHeight: 1.2
           }}>
-            Syllabus Engine & Assessment Platform
+            Syllabus Engine
           </h1>
           
           <p style={{
             color: 'var(--text-secondary)',
-            fontSize: '0.95rem',
-            maxWidth: '620px',
-            lineHeight: 1.6
+            fontSize: '0.9rem',
+            maxWidth: '460px',
+            lineHeight: 1.5
           }}>
             Select your role to access curriculum design tools, question generation, and personalized student study pathways.
           </p>
         </div>
 
-        {/* Two-Column Grid: Left Login Box, Right Role Function Comparison */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(320px, 460px) minmax(320px, 1fr)',
-          gap: '24px',
-          width: '100%',
-          alignItems: 'stretch'
+        {/* Login Form Card */}
+        <div className="glass-panel" style={{
+          padding: '32px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '22px',
+          backgroundColor: 'var(--bg-secondary)',
+          boxShadow: 'var(--shadow-lg)',
+          width: '100%'
         }}>
-          
-          {/* Left: Login Form Card */}
-          <div className="glass-panel" style={{
-            padding: '32px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '22px',
-            backgroundColor: 'var(--bg-secondary)',
-            boxShadow: 'var(--shadow-lg)'
-          }}>
             
             {/* Role Tab Switcher */}
             <div>
@@ -447,194 +439,6 @@ export default function LoginPage({ onLogin }) {
             </div>
 
           </div>
-
-          {/* Right: Role Functions & Value Proposition Panel */}
-          <div className="glass-panel" style={{
-            padding: '32px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            gap: '24px',
-            backgroundColor: 'var(--bg-secondary)',
-            borderColor: selectedRole === 'faculty' ? 'rgba(212, 161, 92, 0.35)' : 'rgba(108, 100, 153, 0.45)'
-          }}>
-            <div>
-              {/* Header Badge */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ fontSize: '1.4rem' }}>{DEMO_USERS[selectedRole].avatar}</span>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-primary)' }}>
-                    {selectedRole === 'faculty' ? 'Faculty & Instructor Workspace' : 'Student & Learner Workspace'}
-                  </h3>
-                  <span style={{ fontSize: '0.76rem', color: selectedRole === 'faculty' ? 'var(--color-primary)' : '#7BAE7F', fontWeight: '600' }}>
-                    {selectedRole === 'faculty' ? 'Tailored for Curriculum Design & Evaluation' : 'Tailored for Concept Mastery & Self-Assessment'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Function Benefit List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '18px' }}>
-                {selectedRole === 'faculty' ? (
-                  <>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(212, 161, 92, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        📐
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          Exam Blueprint Designer
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Design official exam question papers, balance Bloom's taxonomy cognitive levels (Remember, Apply, Analyze), and specify marks weightage.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(212, 161, 92, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        🔀
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          Question Variants Generator (Anti-Cheating)
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Generate parallel Set A, B, and C exam versions with parameter shifts, inverse problems, and real-world scenarios to ensure test integrity.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(212, 161, 92, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        🧪
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          Departmental Question Lab & Bank
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Author and curate an authoritative course question bank with verified marking schemes, difficulty ratings, and model answers.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(212, 161, 92, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        📑
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          Past Paper Syllabus Gap Auditor
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Audit past examination papers against the accredited syllabus to discover untested blind spots and ensure even topic coverage.
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(123, 174, 127, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        🗺️
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          Visual Knowledge Map & Prerequisite Flow
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          See exactly what concepts to learn first. Identifies dependencies so you never feel lost reading advanced textbook chapters.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(123, 174, 127, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        🗂️
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          AI Flashcard Deck & Spaced Repetition
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Master formulas, key definitions, and theorems with interactive flashcards designed for quick active recall before exams.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(123, 174, 127, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        ✍️
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          AI Answer Evaluator (Private Grading Assistant)
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Type your answer or upload a photo of handwritten notes. Get instant rubric grading, missed marks analysis, and model solutions.
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <div style={{ padding: '8px', background: 'rgba(123, 174, 127, 0.1)', borderRadius: '8px', fontSize: '1.1rem' }}>
-                        📝
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                          Self-Paced Practice Lab
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Practice questions by topic, test yourself under exam time constraints, and build your confidence ahead of university exams.
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom Profile Preview Box */}
-            <div style={{
-              padding: '14px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  background: selectedRole === 'faculty' ? 'rgba(212, 161, 92, 0.2)' : 'rgba(123, 174, 127, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.2rem'
-                }}>
-                  {DEMO_USERS[selectedRole].avatar}
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.86rem', fontWeight: '700', color: 'var(--text-primary)' }}>
-                    {DEMO_USERS[selectedRole].name}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {DEMO_USERS[selectedRole].title}
-                  </div>
-                </div>
-              </div>
-
-              <span className={`badge ${selectedRole === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ fontSize: '0.7rem' }}>
-                {DEMO_USERS[selectedRole].badge}
-              </span>
-            </div>
-
-          </div>
-
-        </div>
 
       </div>
     </div>
