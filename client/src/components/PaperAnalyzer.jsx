@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import MathText from './MathText';
 
 export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwardToLab, onForwardToFlashcards }) {
@@ -6,6 +6,7 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
   const [paperFile, setPaperFile] = useState(null);
   const [examName, setExamName] = useState('Mid-Term Examination');
   const [year, setYear] = useState('2024');
+  const fileInputRef = useRef(null);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,6 +25,17 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
     if (e.target.files && e.target.files[0]) {
       setPaperFile(e.target.files[0]);
       setExamName(e.target.files[0].name.replace(/\.[^/.]+$/, ''));
+    }
+  };
+
+  const handleRemoveFile = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setPaperFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -135,15 +147,33 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
             cursor: 'pointer'
           }}>
             <input
+              ref={fileInputRef}
               type="file"
               accept="application/pdf"
               onChange={handleFileChange}
               style={{ fontSize: '0.8rem', width: '100%' }}
             />
             {paperFile && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', display: 'block', marginTop: '6px', fontWeight: '600' }}>
-                📄 {paperFile.name}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: '600' }}>
+                  📄 {paperFile.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#fca5a5',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                  title="Remove uploaded file"
+                >
+                  ✕ Remove
+                </button>
+              </div>
             )}
           </div>
         </div>

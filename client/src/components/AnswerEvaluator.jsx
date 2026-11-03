@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import MathText from './MathText';
 
 export default function AnswerEvaluator({ syllabusData, apiKey, modelName, savedQuestions = [] }) {
@@ -15,6 +15,7 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
   const [studentText, setStudentText] = useState('');
   const [answerFile, setAnswerFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Evaluation states
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +60,21 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
       } else {
         setFilePreview(null);
       }
+    }
+  };
+
+  const handleRemoveFile = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (filePreview && filePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(filePreview);
+    }
+    setAnswerFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -267,12 +283,36 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={handleFileChange}
-                style={{ fontSize: '0.8rem' }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  style={{ fontSize: '0.8rem', flex: 1, minWidth: '180px' }}
+                />
+                {answerFile && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      borderColor: 'rgba(244, 63, 94, 0.4)',
+                      color: '#fca5a5',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Remove selected file"
+                  >
+                    <span>🗑️</span>
+                    <span>Remove File</span>
+                  </button>
+                )}
+              </div>
+
               <div style={{
                 padding: '8px 12px',
                 borderRadius: '6px',
@@ -289,9 +329,121 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                   <strong>Neural Vision Transformer:</strong> Deciphers messy/cursive handwriting, LaTeX math symbols ($ \int, \sum $), and hand-drawn diagrams.
                 </span>
               </div>
+
               {filePreview && (
-                <div style={{ marginTop: '4px', maxHeight: '180px', overflow: 'hidden', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <img src={filePreview} alt="Student answer sheet" style={{ width: '100%', objectFit: 'contain' }} />
+                <div style={{
+                  position: 'relative',
+                  marginTop: '4px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-subtle)',
+                  overflow: 'hidden',
+                  background: 'rgba(0,0,0,0.35)',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  {/* Floating Action Button directly on top of the image */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      style={{
+                        padding: '5px 12px',
+                        fontSize: '0.74rem',
+                        fontWeight: '600',
+                        backgroundColor: 'rgba(224, 76, 76, 0.92)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(4px)',
+                        transition: 'var(--transition-fast)'
+                      }}
+                      title="Remove this uploaded image"
+                    >
+                      <span style={{ fontWeight: 'bold' }}>✕</span>
+                      <span>Remove Image</span>
+                    </button>
+                  </div>
+
+                  <img
+                    src={filePreview}
+                    alt="Student handwritten answer sheet"
+                    style={{ width: '100%', maxHeight: '240px', objectFit: 'contain', display: 'block', background: '#0D0D0F' }}
+                  />
+
+                  {/* Caption footer bar with quick delete */}
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'var(--bg-elevated)',
+                    borderTop: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.74rem'
+                  }}>
+                    <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                      📷 <strong>{answerFile?.name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#fca5a5',
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!filePreview && answerFile && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.78rem'
+                }}>
+                  <span style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📄</span>
+                    <span>{answerFile.name}</span>
+                    <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>PDF Document</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: '0.72rem',
+                      color: '#fca5a5',
+                      borderColor: 'rgba(244, 63, 94, 0.4)'
+                    }}
+                  >
+                    ✕ Remove File
+                  </button>
                 </div>
               )}
             </div>
