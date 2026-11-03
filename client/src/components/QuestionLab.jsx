@@ -15,8 +15,26 @@ export default function QuestionLab({
   const [selectedTopic, setSelectedTopic] = useState('');
   const [activeSubTab, setActiveSubTab] = useState('evaluator'); // 'evaluator' | 'bank'
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(() => {
+    try {
+      const saved = localStorage.getItem('question_lab_active_result');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [error, setError] = useState(null);
+
+  // Keep question lab result persistent
+  useEffect(() => {
+    try {
+      if (result) {
+        localStorage.setItem('question_lab_active_result', JSON.stringify(result));
+      }
+    } catch (e) {
+      console.error('Failed to save question lab result to localStorage', e);
+    }
+  }, [result]);
 
   // Question Editing & AI Refinement States
   const [activeEditingId, setActiveEditingId] = useState(null); // ID or 'winner'
@@ -191,7 +209,6 @@ export default function QuestionLab({
 
     setIsLoading(true);
     setError(null);
-    setResult(null);
 
     try {
       const response = await fetch('/api/generate-optimized-question', {
@@ -213,6 +230,29 @@ export default function QuestionLab({
 
       const data = await response.json();
       setResult(data);
+      try {
+        localStorage.setItem('question_lab_active_result', JSON.stringify(data));
+      } catch (e) {
+        console.error('Failed to cache question lab result', e);
+      }
+
+      // Automatically save the generated winning question to Question Bank so it is never lost!
+      if (data && data.selected_question && onSaveToBank) {
+        const winningQ = {
+          id: 'q_lab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+          topic: data.topic || target,
+          question_text: data.selected_question.question_text,
+          expected_answer_outline: data.selected_question.expected_answer_outline,
+          marks: 10,
+          difficulty: 'Hard',
+          bloom_level: 'Analyze',
+          question_type: 'Conceptual Integration',
+          explanation: data.selected_question.explanation,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          source: 'Question Lab (AI Winner)'
+        };
+        onSaveToBank(winningQ);
+      }
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -474,6 +514,51 @@ export default function QuestionLab({
                               <strong style={{ color: getMetricColor(cand.metrics.discrimination_score) }}>{cand.metrics.discrimination_score}/10</strong>
                             </div>
                           </div>
+
+                          {/* Candidate Save Button */}
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => {
+                              const isSaved = savedQuestions.some(sq => sq.question_text?.trim() === cand.question_text?.trim());
+                              if (isSaved) {
+                                alert('This question is already saved in your Question Bank!');
+                                return;
+                              }
+                              const candQ = {
+                                id: 'q_cand_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                                topic: result.topic || selectedTopic,
+                                question_text: cand.question_text,
+                                expected_answer_outline: 'Candidate #' + cand.candidate_id + ' answer scheme for ' + (result.topic || selectedTopic),
+                                marks: 10,
+                                difficulty: 'Medium',
+                                bloom_level: 'Apply',
+                                question_type: 'Evaluated Candidate',
+                                explanation: `Candidate #${cand.candidate_id} (Rank ${rankIndex}) - Reasoning: ${cand.metrics.reasoning_depth}/10, Originality: ${cand.metrics.originality}/10`,
+                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                source: `Question Lab (Candidate #${cand.candidate_id})`
+                              };
+                              if (onSaveToBank) {
+                                onSaveToBank(candQ);
+                                alert(`Candidate #${cand.candidate_id} saved to Question Bank!`);
+                              }
+                            }}
+                            style={{
+                              padding: '5px 8px',
+                              fontSize: '0.72rem',
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '5px',
+                              marginTop: '4px',
+                              borderColor: savedQuestions.some(sq => sq.question_text?.trim() === cand.question_text?.trim()) ? 'var(--color-success)' : 'var(--border-subtle)',
+                              color: savedQuestions.some(sq => sq.question_text?.trim() === cand.question_text?.trim()) ? 'var(--color-success)' : 'var(--text-secondary)'
+                            }}
+                          >
+                            <span>{savedQuestions.some(sq => sq.question_text?.trim() === cand.question_text?.trim()) ? '✓' : '📥'}</span>
+                            <span>{savedQuestions.some(sq => sq.question_text?.trim() === cand.question_text?.trim()) ? 'Saved in Bank' : 'Save to Bank'}</span>
+                          </button>
                         </div>
                       );
                     })}
@@ -483,9 +568,14 @@ export default function QuestionLab({
                 {/* Selected Champion Question Card */}
                 <div className="glass-panel" style={{ padding: '20px', border: '1px solid var(--color-success)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
-                    <div>
-                      <span className="badge" style={{ backgroundColor: 'var(--color-success)', color: '#fff', marginRight: '8px' }}>WINNING QUESTION</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className="badge" style={{ backgroundColor: 'var(--color-success)', color: '#fff' }}>WINNING QUESTION</span>
                       <span className="badge badge-violet">Candidate #{result.selected_question.candidate_id}</span>
+                      {savedQuestions.some(sq => sq.question_text?.trim() === result.selected_question.question_text?.trim()) && (
+                        <span className="badge badge-emerald" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <span>✓</span> Auto-Saved to Bank
+                        </span>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -632,7 +722,28 @@ export default function QuestionLab({
                               result.selected_question.question_text = editText;
                               result.selected_question.expected_answer_outline = editAnswer;
                               setActiveEditingId(null);
-                              alert('Question updated successfully!');
+                              try {
+                                localStorage.setItem('question_lab_active_result', JSON.stringify(result));
+                              } catch (e) {
+                                console.error('Failed to cache edited result', e);
+                              }
+                              if (onSaveToBank) {
+                                const updatedQ = {
+                                  id: 'q_lab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                                  topic: result.topic,
+                                  question_text: editText,
+                                  expected_answer_outline: editAnswer,
+                                  marks: 10,
+                                  difficulty: 'Hard',
+                                  bloom_level: 'Analyze',
+                                  question_type: 'Conceptual Integration (Edited)',
+                                  explanation: result.selected_question.explanation,
+                                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                  source: 'Question Lab (User Edited)'
+                                };
+                                onSaveToBank(updatedQ);
+                              }
+                              alert('Question updated and saved to Question Bank!');
                             }}
                             style={{ padding: '6px 14px', fontSize: '0.78rem' }}
                           >
@@ -690,9 +801,18 @@ export default function QuestionLab({
                     <button 
                       className="btn btn-secondary" 
                       onClick={handleSaveWinningQuestion}
-                      style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderColor: savedQuestions.some(sq => sq.question_text?.trim() === (editText || result.selected_question.question_text)?.trim()) ? 'var(--color-success)' : 'var(--border-subtle)',
+                        color: savedQuestions.some(sq => sq.question_text?.trim() === (editText || result.selected_question.question_text)?.trim()) ? 'var(--color-success)' : 'var(--text-secondary)'
+                      }}
                     >
-                      Save to Question Bank
+                      <span>{savedQuestions.some(sq => sq.question_text?.trim() === (editText || result.selected_question.question_text)?.trim()) ? '✓' : '📥'}</span>
+                      <span>{savedQuestions.some(sq => sq.question_text?.trim() === (editText || result.selected_question.question_text)?.trim()) ? 'Saved in Question Bank' : 'Save to Question Bank'}</span>
                     </button>
                     <button 
                       className="btn btn-primary" 
@@ -774,6 +894,22 @@ export default function QuestionLab({
               >
                 📋 Copy All (MD)
               </button>
+
+              {savedQuestions.length > 0 && onRemoveFromBank && (
+                <button
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete all ${savedQuestions.length} questions from your Question Bank? This cannot be undone.`)) {
+                      savedQuestions.forEach(q => onRemoveFromBank(q.id));
+                      localStorage.removeItem('syllabus_question_bank');
+                    }
+                  }}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#fca5a5', borderColor: 'rgba(244, 63, 94, 0.4)' }}
+                  title="Clear all questions from question bank"
+                >
+                  🗑️ Clear Bank
+                </button>
+              )}
             </div>
           </div>
 
@@ -1112,8 +1248,14 @@ export default function QuestionLab({
                                 type="button" 
                                 className="btn btn-primary" 
                                 onClick={() => {
-                                  q.question_text = editText;
-                                  q.expected_answer_outline = editAnswer;
+                                  const updatedQuestion = {
+                                    ...q,
+                                    question_text: editText,
+                                    expected_answer_outline: editAnswer
+                                  };
+                                  if (onSaveToBank) {
+                                    onSaveToBank(updatedQuestion);
+                                  }
                                   setActiveEditingId(null);
                                   alert('Saved Question updated!');
                                 }}

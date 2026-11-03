@@ -34,8 +34,24 @@ export default function App() {
   const [initialFlashcardTopic, setInitialFlashcardTopic] = useState('');
   
   // Persistent Question Storage
-  const [savedQuestions, setSavedQuestions] = useState([]);
+  const [savedQuestions, setSavedQuestions] = useState(() => {
+    try {
+      const saved = localStorage.getItem('syllabus_question_bank');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [incomingLabQuestion, setIncomingLabQuestion] = useState(null);
+
+  // Synchronize Question Bank with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('syllabus_question_bank', JSON.stringify(savedQuestions));
+    } catch (e) {
+      console.error('Failed to sync question bank to localStorage', e);
+    }
+  }, [savedQuestions]);
 
   // Analysis History Storage & Drawer State
   const [historySessions, setHistorySessions] = useState(() => {
@@ -155,16 +171,30 @@ export default function App() {
     setError(null);
     setInitialLabTopic('');
     setInitialFlashcardTopic('');
-    setSavedQuestions([]);
+    // Note: Question Bank (savedQuestions) is preserved across syllabus resets
     setIncomingLabQuestion(null);
   };
 
   const handleSaveQuestionToBank = (questionObj) => {
+    if (!questionObj || !questionObj.question_text) return;
     setSavedQuestions(prev => {
-      // Prevent duplicates
-      if (prev.some(q => q.question_text === questionObj.question_text)) {
-        return prev;
+      // 1. If question with same ID already exists, update in-place
+      if (questionObj.id) {
+        const idIdx = prev.findIndex(q => q.id === questionObj.id);
+        if (idIdx !== -1) {
+          const updated = [...prev];
+          updated[idIdx] = { ...updated[idIdx], ...questionObj };
+          return updated;
+        }
       }
+      // 2. If question with identical text already exists, update in-place
+      const textIdx = prev.findIndex(q => q.question_text?.trim() === questionObj.question_text?.trim());
+      if (textIdx !== -1) {
+        const updated = [...prev];
+        updated[textIdx] = { ...updated[textIdx], ...questionObj };
+        return updated;
+      }
+      // 3. Otherwise add as new question
       return [questionObj, ...prev];
     });
   };
