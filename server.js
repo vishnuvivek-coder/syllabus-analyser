@@ -1296,27 +1296,74 @@ app.post('/api/evaluate-answer', upload.single('answerFile'), async (req, res) =
     }
 
     const systemPrompt = `You are a fair, rigorous, and constructive university professor and answer script examiner, equipped with a Multimodal Vision Neural Network for deep handwriting analysis and document evaluation.
-Your task is to thoroughly transcribe and evaluate the student's submitted answer (whether handwritten image or typed text) against the official question and model answer outline.
+Your task is to thoroughly analyze the student's submitted answer (handwritten paper image, PDF, or typed response), award fair and accurate marks out of ${totalMarks}, and provide a crystal-clear, transparent justification for the marks given.
 
-NEURAL HANDWRITING & EXAM EVALUATION PRINCIPLES:
-1. NEURAL SCRIPT RECOGNITION:
-   - Carefully decipher messy, cursive, or fast exam handwriting from the paper.
-   - Detect mathematical notations (integrals, summations, fractions, sub/superscripts) and transcribe into valid LaTeX ($...$ or $$...$$).
+GRADING & MARKS ALLOCATION INSTRUCTIONS:
+1. AWARD PRECISE MARKS:
+   - Award marks strictly based on the accuracy of steps, formulas, reasoning, and final answers found on the student's paper.
+   - Max marks is: ${totalMarks}. The total awarded score MUST be between 0 and ${totalMarks}.
+   - Proportional partial credit MUST be awarded for correct formulas, intermediate substitutions, and valid working even if the final answer has an arithmetic slip or is incomplete.
+
+2. CLEAR REASON FOR MARKS GIVEN & DEDUCTED:
+   - You MUST explain EXACTLY why every mark was given and why any mark was deducted.
+   - State clearly which steps earned marks (e.g. "+3 Marks for correct formula and parameter substitution").
+   - State clearly which errors or omissions caused deductions (e.g. "-1.5 Marks: Did not compute final normalized posterior probability").
+
+3. NEURAL HANDWRITING SCRIPT RECOGNITION:
+   - Carefully decipher messy, cursive, or fast handwritten answers from the paper.
+   - Detect mathematical notations and transcribe into valid LaTeX ($...$ or $$...$$).
    - Identify hand-drawn diagrams, schematics, graphs, and labels.
    - Gauge handwriting legibility (0-100), stroke clarity, and visual presentation.
 
-2. ACADEMIC EVALUATION & GRADING:
-   - Award proportional partial credit for correct steps, formulas, and reasoning.
-   - Deduct marks specifically for conceptual errors, calculation mistakes, omissions, or invalid assumptions.
-   - Max Marks for this question is: ${totalMarks}. Total score MUST be between 0 and ${totalMarks}.
-   - Provide structured, constructive feedback that helps the student master the topic.
-
-Format the output strictly as JSON following this structure:
+Format your response strictly as JSON with this schema:
 {
-  "total_score": 8.5,
+  "total_score": 7.5,
   "max_marks": ${totalMarks},
-  "percentage": 85,
+  "percentage": 75,
   "overall_grade": "A" | "B" | "C" | "D" | "F",
+  "marks_awarded_summary": "Comprehensive 2-4 sentence explanation detailing EXACTLY why the student was awarded 7.5 out of ${totalMarks} marks, citing which steps earned marks and what specific omissions or errors resulted in deductions.",
+  "marks_breakdown": {
+    "points_awarded": [
+      {
+        "item": "Step or Formula Name",
+        "marks": "+2.5",
+        "reason": "Detailed justification of why these marks were awarded based on student's written work"
+      }
+    ],
+    "deductions": [
+      {
+        "item": "Error, Slip, or Omission",
+        "marks": "-2.5",
+        "reason": "Detailed explanation of why marks were deducted"
+      }
+    ]
+  },
+  "section_scores": [
+    {
+      "criterion": "Conceptual Setup & Formulas",
+      "score": 3.0,
+      "max": 3.0,
+      "status": "Full Marks",
+      "reason_for_marks": "Explicit justification for marks given on this section",
+      "feedback": "Constructive feedback"
+    },
+    {
+      "criterion": "Mathematical Derivation & Calculation",
+      "score": 4.5,
+      "max": 5.0,
+      "status": "Partial Credit",
+      "reason_for_marks": "Explicit justification for marks given and partial credit deduction",
+      "feedback": "Constructive feedback"
+    },
+    {
+      "criterion": "Final Answer & Interpretation",
+      "score": 0.0,
+      "max": 2.0,
+      "status": "No Marks",
+      "reason_for_marks": "Explicit justification of why no marks were awarded for final answer",
+      "feedback": "Constructive feedback"
+    }
+  ],
   "summary": "2-3 sentence overview of student performance and conceptual grasp",
   "handwriting_analysis": {
     "is_handwritten": true,
@@ -1326,41 +1373,15 @@ Format the output strictly as JSON following this structure:
     "transcribed_text": "Full word-for-word transcription of what the student wrote on the answer sheet, preserving step structure.",
     "detected_equations": [
       {
-        "raw_visual": "dy/dx + Py = Q",
-        "latex": "\\frac{dy}{dx} + P(x)y = Q(x)",
+        "raw_visual": "P(Y=1) = 6/10 = 0.6",
+        "latex": "P(Y=1) = \\\\frac{6}{10} = 0.6",
         "is_correctly_written": true,
-        "note": "Standard first-order linear differential form correctly set up"
+        "note": "Correctly computed prior probability"
       }
     ],
-    "detected_diagrams": [
-      {
-        "label": "Free Body Diagram / Circuit Schema",
-        "quality": "Good / Clear",
-        "feedback": "Axes and arrows clearly labeled."
-      }
-    ],
+    "detected_diagrams": [],
     "presentation_tips": "Suggestions to improve answer sheet layout, margins, and handwriting neatness for examiners."
   },
-  "section_scores": [
-    {
-      "criterion": "Conceptual Clarity & Definition",
-      "score": 3.5,
-      "max": 4,
-      "feedback": "Specific feedback on this step"
-    },
-    {
-      "criterion": "Derivation & Mathematical Working",
-      "score": 3,
-      "max": 4,
-      "feedback": "Specific feedback on calculations"
-    },
-    {
-      "criterion": "Final Answer & Interpretation",
-      "score": 2,
-      "max": 2,
-      "feedback": "Feedback on final result"
-    }
-  ],
   "strengths": ["List of what the student did well"],
   "weaknesses": ["List of exact errors or gaps in reasoning"],
   "improvement_tips": ["Actionable study suggestions to improve"],

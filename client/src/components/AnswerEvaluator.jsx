@@ -597,46 +597,173 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                   </div>
                 </div>
 
-                {/* Performance Summary */}
-                <div>
-                  <h4 style={{ fontSize: '0.88rem', color: 'var(--color-primary)', marginBottom: '6px' }}>
-                    Examiner Summary
-                  </h4>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    {evalResult.summary}
+                {/* Prominent Official Reason for Marks Awarded */}
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '10px',
+                  background: 'rgba(212, 161, 92, 0.07)',
+                  border: '1px solid rgba(212, 161, 92, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.1rem' }}>🎯</span>
+                    <h4 style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontWeight: '700', margin: 0 }}>
+                      Official Reason for Marks Awarded:
+                    </h4>
+                  </div>
+                  <p style={{ fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.6, margin: 0 }}>
+                    <MathText text={evalResult.marks_awarded_summary || evalResult.summary} />
                   </p>
                 </div>
 
-                {/* Step-by-Step Rubric Breakdown */}
-                <div>
-                  <h4 style={{ fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: '10px' }}>
-                    Section-wise Marking Rubric
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {evalResult.section_scores?.map((sec, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          padding: '12px 16px',
-                          background: 'var(--bg-secondary)',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{sec.criterion}</strong>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: '700' }}>
-                            {sec.score} / {sec.max} M
+                {/* Detailed Marks Breakdown: Points Awarded vs Deductions */}
+                {evalResult.marks_breakdown && (evalResult.marks_breakdown.points_awarded?.length > 0 || evalResult.marks_breakdown.deductions?.length > 0) && (
+                  <div>
+                    <h4 style={{ fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚖️</span>
+                      <span>Marks Allocation Justification</span>
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
+                      {/* Points Awarded Column */}
+                      <div style={{
+                        padding: '16px',
+                        background: 'rgba(123, 174, 127, 0.06)',
+                        border: '1px solid rgba(123, 174, 127, 0.25)',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--color-success)', textTransform: 'uppercase' }}>
+                            🟢 Points Earned
+                          </span>
+                          <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
+                            {evalResult.marks_breakdown.points_awarded?.length || 0} Steps
                           </span>
                         </div>
-                        <div style={{ width: '100%', height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', overflow: 'hidden', marginBottom: '6px' }}>
-                          <div style={{ width: `${(sec.score / sec.max) * 100}%`, height: '100%', background: 'var(--color-primary)' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {evalResult.marks_breakdown.points_awarded?.map((item, idx) => (
+                            <div key={idx} style={{ padding: '8px 10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid rgba(123, 174, 127, 0.15)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{item.item}</strong>
+                                <span style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--color-success)', background: 'rgba(123, 174, 127, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                                  {item.marks}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                                <MathText text={item.reason} />
+                              </p>
+                            </div>
+                          ))}
                         </div>
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                          <MathText text={sec.feedback} />
-                        </p>
                       </div>
-                    ))}
+
+                      {/* Deductions Column */}
+                      <div style={{
+                        padding: '16px',
+                        background: 'rgba(244, 63, 94, 0.06)',
+                        border: '1px solid rgba(244, 63, 94, 0.25)',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--color-danger)', textTransform: 'uppercase' }}>
+                            🔴 Point Deductions
+                          </span>
+                          <span className="badge badge-pink" style={{ fontSize: '0.68rem' }}>
+                            {evalResult.marks_breakdown.deductions?.length || 0} Penalties
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {evalResult.marks_breakdown.deductions?.length > 0 ? (
+                            evalResult.marks_breakdown.deductions.map((item, idx) => (
+                              <div key={idx} style={{ padding: '8px 10px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid rgba(244, 63, 94, 0.15)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{item.item}</strong>
+                                  <span style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--color-danger)', background: 'rgba(244, 63, 94, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                                    {item.marks}
+                                  </span>
+                                </div>
+                                <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                                  <MathText text={item.reason} />
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '12px', textAlign: 'center' }}>
+                              No mark deductions. Full credit awarded!
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step-by-Step Rubric Breakdown with Explicit Reason for Marks */}
+                <div>
+                  <h4 style={{ fontSize: '0.88rem', color: 'var(--text-primary)', marginBottom: '10px' }}>
+                    Section-wise Marking Rubric & Scoring Rationale
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {evalResult.section_scores?.map((sec, idx) => {
+                      const isFull = sec.score === sec.max;
+                      const isZero = sec.score === 0;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '14px 16px',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-subtle)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <strong style={{ fontSize: '0.86rem', color: 'var(--text-primary)' }}>{sec.criterion}</strong>
+                              <span className={`badge ${isFull ? 'badge-emerald' : (isZero ? 'badge-pink' : 'badge-amber')}`} style={{ fontSize: '0.65rem' }}>
+                                {sec.status || (isFull ? 'Full Marks' : (isZero ? 'No Marks' : 'Partial Credit'))}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '0.88rem', color: 'var(--color-primary)', fontWeight: '700' }}>
+                              {sec.score} / {sec.max} Marks
+                            </span>
+                          </div>
+
+                          <div style={{ width: '100%', height: '5px', background: 'var(--bg-elevated)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${(sec.score / sec.max) * 100}%`,
+                              height: '100%',
+                              background: isFull ? 'var(--color-success)' : (isZero ? 'var(--color-danger)' : 'var(--color-primary)')
+                            }} />
+                          </div>
+
+                          <div style={{
+                            padding: '8px 10px',
+                            background: 'var(--bg-elevated)',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            borderLeft: `3px solid ${isFull ? 'var(--color-success)' : (isZero ? 'var(--color-danger)' : 'var(--color-primary)')}`
+                          }}>
+                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              Reason for Marks:
+                            </div>
+                            <div style={{ color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                              <MathText text={sec.reason_for_marks || sec.feedback} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
