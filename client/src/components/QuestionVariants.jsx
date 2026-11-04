@@ -249,12 +249,13 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
         )}
 
         {!activeQuestion?.question_text?.trim() && (
-          <div style={{ padding: '10px 12px', background: 'rgba(212, 161, 92, 0.12)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontSize: '0.78rem', color: 'var(--color-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--color-graphite)', borderRadius: '6px', fontSize: '0.78rem', color: 'var(--color-mist)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>✍️ Enter a question or test sample:</span>
             <button
               type="button"
               onClick={handleFillSample}
-              style={{ background: 'var(--color-primary)', color: '#0D0D0F', border: 'none', padding: '3px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer' }}
+              className="btn btn-primary"
+              style={{ padding: '3px 10px', fontSize: '0.72rem' }}
             >
               Fill Sample
             </button>
@@ -347,8 +348,8 @@ export default function QuestionVariants({ syllabusData, apiKey, modelName, save
 
                   {/* Variation Strategy Description */}
                   {v.description && (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-primary)', background: 'rgba(212, 161, 92, 0.08)', padding: '6px 12px', borderRadius: '4px' }}>
-                      💡 <strong>Variation Angle:</strong> {v.description}
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-mist)', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--color-graphite)', padding: '6px 12px', borderRadius: '4px' }}>
+                      💡 <strong style={{ color: 'var(--color-paper)' }}>Variation Angle:</strong> {v.description}
                     </div>
                   )}
 

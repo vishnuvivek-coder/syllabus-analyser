@@ -951,8 +951,8 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
                     const ratio = blooms.length > 0 ? (highOrder / blooms.length) * 100 : 0;
                     return (
                       <span className="badge" style={{
-                        background: ratio >= 60 ? 'rgba(123, 174, 127, 0.2)' : 'rgba(212, 161, 92, 0.2)',
-                        color: ratio >= 60 ? 'var(--color-success)' : 'var(--color-primary)',
+                        background: ratio >= 60 ? 'rgba(39, 166, 68, 0.15)' : 'rgba(228, 242, 34, 0.12)',
+                        color: ratio >= 60 ? 'var(--color-pulse-green)' : 'var(--color-acid-lime)',
                         border: '1px solid currentColor'
                       }}>
                         {ratio >= 60 ? '⚡ Rigorous & Analytical (HOT)' : '📘 Foundational Balance'} ({Math.round(ratio)}% HOTS)
@@ -965,12 +965,12 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
               {/* Stacked Multi-Color Progress Bar */}
               {(() => {
                 const colors = {
-                  Remember: '#6C6499',
-                  Understand: '#5D737E',
-                  Apply: '#7BAE7F',
-                  Analyze: '#D4A15C',
-                  Evaluate: '#E06A60',
-                  Create: '#B088F9'
+                  Remember: 'var(--color-iris-violet)',
+                  Understand: 'var(--color-signal-teal)',
+                  Apply: 'var(--color-pulse-green)',
+                  Analyze: 'var(--color-acid-lime)',
+                  Evaluate: 'var(--color-coral-red)',
+                  Create: 'var(--color-lavender)'
                 };
                 const total = blueprintResult.questions?.length || 1;
                 const counts = {};

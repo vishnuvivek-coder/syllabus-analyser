@@ -1060,11 +1060,11 @@ export default function QuestionLab({
                             key={idx}
                             style={{
                               fontSize: '0.7rem',
-                              background: 'rgba(212, 161, 92, 0.1)',
-                              color: 'var(--color-primary)',
-                              border: '1px solid rgba(212, 161, 92, 0.25)',
+                              background: 'rgba(99, 102, 241, 0.1)',
+                              color: '#a5b4fc',
+                              border: '1px solid rgba(99, 102, 241, 0.25)',
                               padding: '2px 8px',
-                              borderRadius: '12px',
+                              borderRadius: '4px',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px'

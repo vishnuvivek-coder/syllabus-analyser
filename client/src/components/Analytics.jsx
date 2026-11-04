@@ -202,12 +202,12 @@ export default function Analytics({ data }) {
                       flex: 1,
                       padding: '8px 4px',
                       textAlign: 'center',
-                      background: i < 4 ? 'rgba(212, 161, 92, 0.2)' : 'var(--bg-elevated)',
-                      border: i < 4 ? '1px solid var(--color-primary)' : '1px solid var(--border-subtle)',
+                      background: i < 4 ? 'rgba(228, 242, 34, 0.12)' : 'var(--color-obsidian)',
+                      border: i < 4 ? '1px solid var(--color-acid-lime)' : '1px solid var(--color-graphite)',
                       borderRadius: '6px',
                       fontSize: '0.72rem',
-                      color: i < 4 ? 'var(--color-primary)' : 'var(--text-muted)',
-                      fontWeight: i < 4 ? '700' : 'normal'
+                      color: i < 4 ? 'var(--color-acid-lime)' : 'var(--color-fog)',
+                      fontWeight: i < 4 ? '510' : '400'
                     }}
                   >
                     {day}
@@ -318,8 +318,8 @@ export default function Analytics({ data }) {
                 </div>
 
                 <div style={{ 
-                  backgroundColor: 'rgba(212, 161, 92, 0.08)', 
-                  border: '1px solid rgba(212, 161, 92, 0.25)', 
+                  backgroundColor: 'rgba(228, 242, 34, 0.05)', 
+                  border: '1px solid rgba(228, 242, 34, 0.2)', 
                   borderRadius: '8px', 
                   padding: '12px',
                   display: 'flex',

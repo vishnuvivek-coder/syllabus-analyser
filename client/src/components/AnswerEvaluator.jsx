@@ -250,23 +250,31 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
           </div>
         )}
 
-        {/* Student Submission Type */}
+        {/* Student Submission Type - Linear Segmented Control */}
         <div>
           <label className="form-label">Student Submission Mode</label>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: '4px', 
+            marginBottom: '10px',
+            background: 'var(--color-obsidian)',
+            padding: '4px',
+            borderRadius: '8px',
+            border: '1px solid var(--color-graphite)'
+          }}>
             <button
               type="button"
               onClick={() => setSubmissionType('text')}
-              className={`btn ${submissionType === 'text' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
+              className={`tab-btn ${submissionType === 'text' ? 'active' : ''}`}
+              style={{ flex: 1, padding: '6px 10px', fontSize: '0.76rem' }}
             >
               Typed Answer
             </button>
             <button
               type="button"
               onClick={() => setSubmissionType('file')}
-              className={`btn ${submissionType === 'file' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ flex: 1, padding: '6px 10px', fontSize: '0.75rem' }}
+              className={`tab-btn ${submissionType === 'file' ? 'active' : ''}`}
+              style={{ flex: 1, padding: '6px 10px', fontSize: '0.76rem' }}
             >
               📷 Handwritten Paper (Neural Vision)
             </button>
@@ -299,8 +307,8 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                     style={{
                       padding: '4px 10px',
                       fontSize: '0.74rem',
-                      borderColor: 'rgba(244, 63, 94, 0.4)',
-                      color: '#fca5a5',
+                      borderColor: 'rgba(235, 87, 87, 0.3)',
+                      color: 'var(--color-coral-red)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px'
@@ -316,17 +324,17 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
               <div style={{
                 padding: '8px 12px',
                 borderRadius: '6px',
-                background: 'rgba(212, 161, 92, 0.08)',
-                border: '1px solid rgba(212, 161, 92, 0.2)',
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--color-graphite)',
                 fontSize: '0.74rem',
-                color: 'var(--text-secondary)',
+                color: 'var(--color-fog)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
                 <span style={{ fontSize: '1.1rem' }}>🧠</span>
                 <span>
-                  <strong>Neural Vision Transformer:</strong> Deciphers messy/cursive handwriting, LaTeX math symbols ($ \int, \sum $), and hand-drawn diagrams.
+                  <strong style={{ color: 'var(--color-mist)' }}>Neural Vision Transformer:</strong> Deciphers messy/cursive handwriting, LaTeX math symbols ($ \int, \sum $), and hand-drawn diagrams.
                 </span>
               </div>
 
@@ -482,34 +490,20 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
           </div>
         ) : (
           <>
-            {/* View Switcher: Scorecard vs Neural Handwriting Analysis */}
+            {/* View Switcher: Scorecard vs Neural Handwriting Analysis - Linear Precision Segmented Control */}
             <div style={{
               display: 'flex',
-              gap: '8px',
+              gap: '4px',
               padding: '4px',
-              background: 'var(--bg-elevated)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)'
+              background: 'var(--color-obsidian)',
+              borderRadius: '8px',
+              border: '1px solid var(--color-graphite)'
             }}>
               <button
                 type="button"
                 onClick={() => setResultTab('scorecard')}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: resultTab === 'scorecard' ? 'var(--color-primary)' : 'transparent',
-                  color: resultTab === 'scorecard' ? '#0D0D0F' : 'var(--text-secondary)',
-                  fontWeight: resultTab === 'scorecard' ? '700' : '500',
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'var(--transition-fast)'
-                }}
+                className={`tab-btn ${resultTab === 'scorecard' ? 'active' : ''}`}
+                style={{ flex: 1, padding: '7px 12px', fontSize: '0.8rem' }}
               >
                 <span>📊</span>
                 <span>Examiner Scorecard & Rubric</span>
@@ -518,32 +512,17 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
               <button
                 type="button"
                 onClick={() => setResultTab('handwriting')}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: resultTab === 'handwriting' ? 'var(--color-primary)' : 'transparent',
-                  color: resultTab === 'handwriting' ? '#0D0D0F' : 'var(--text-secondary)',
-                  fontWeight: resultTab === 'handwriting' ? '700' : '500',
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'var(--transition-fast)'
-                }}
+                className={`tab-btn ${resultTab === 'handwriting' ? 'active' : ''}`}
+                style={{ flex: 1, padding: '7px 12px', fontSize: '0.8rem' }}
               >
                 <span>🧠</span>
                 <span>Neural Handwriting Analysis</span>
                 {evalResult.handwriting_analysis?.legibility_score !== undefined && (
-                  <span style={{
-                    fontSize: '0.68rem',
-                    padding: '2px 6px',
-                    borderRadius: '10px',
-                    background: resultTab === 'handwriting' ? 'rgba(0,0,0,0.25)' : 'rgba(212, 161, 92, 0.2)',
-                    fontWeight: '700'
+                  <span className="badge" style={{
+                    fontSize: '0.65rem',
+                    padding: '1px 6px',
+                    borderColor: 'var(--color-smoke)',
+                    color: 'var(--color-paper)'
                   }}>
                     {evalResult.handwriting_analysis.legibility_score}% Legible
                   </span>
@@ -554,12 +533,12 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
             {/* TAB 1: Examiner Scorecard & Rubric */}
             {resultTab === 'scorecard' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                {/* Scorecard Hero Banner */}
+                {/* Scorecard Hero Banner - Precision Frame */}
                 <div style={{
                   padding: '20px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, rgba(212, 161, 92, 0.12) 0%, rgba(108, 100, 153, 0.12) 100%)',
-                  border: '1px solid var(--border-strong)',
+                  background: 'var(--color-obsidian)',
+                  border: '1px solid var(--color-graphite)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -567,30 +546,30 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                   gap: '16px'
                 }}>
                   <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '700' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-fog)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '510' }}>
                       Official Examiner Scorecard
                     </span>
-                    <h3 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: '4px 0' }}>
-                      {evalResult.total_score} <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>/ {evalResult.max_marks} Marks</span>
+                    <h3 style={{ fontSize: '1.8rem', color: 'var(--color-paper)', fontWeight: '510', letterSpacing: '-0.022em', margin: '4px 0' }}>
+                      {evalResult.total_score} <span style={{ fontSize: '1.1rem', color: 'var(--color-fog)' }}>/ {evalResult.max_marks} Marks</span>
                     </h3>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--color-mist)' }}>
                       Overall Percentage: <strong>{evalResult.percentage}%</strong>
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '50%',
-                      background: evalResult.percentage >= 80 ? 'var(--color-success)' : (evalResult.percentage >= 50 ? 'var(--color-primary)' : 'var(--color-danger)'),
-                      color: '#0D0D0F',
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '8px',
+                      background: evalResult.percentage >= 80 ? 'var(--color-pulse-green)' : (evalResult.percentage >= 50 ? 'var(--color-acid-lime)' : 'var(--color-coral-red)'),
+                      color: '#08090a',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1.5rem',
-                      fontWeight: '800',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
+                      fontSize: '1.4rem',
+                      fontWeight: '590',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
                     }}>
                       {evalResult.overall_grade}
                     </div>
@@ -600,20 +579,20 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                 {/* Prominent Official Reason for Marks Awarded */}
                 <div style={{
                   padding: '16px',
-                  borderRadius: '10px',
-                  background: 'rgba(212, 161, 92, 0.07)',
-                  border: '1px solid rgba(212, 161, 92, 0.3)',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--color-smoke)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '6px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '1.1rem' }}>🎯</span>
-                    <h4 style={{ fontSize: '0.9rem', color: 'var(--color-primary)', fontWeight: '700', margin: 0 }}>
+                    <h4 style={{ fontSize: '0.88rem', color: 'var(--color-paper)', fontWeight: '510', margin: 0 }}>
                       Official Reason for Marks Awarded:
                     </h4>
                   </div>
-                  <p style={{ fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.6, margin: 0 }}>
+                  <p style={{ fontSize: '0.86rem', color: 'var(--color-mist)', lineHeight: 1.6, margin: 0 }}>
                     <MathText text={evalResult.marks_awarded_summary || evalResult.summary} />
                   </p>
                 </div>
@@ -822,12 +801,12 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
             {resultTab === 'handwriting' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 
-                {/* Neural Handwriting Metrics Card */}
+                {/* Neural Handwriting Metrics Card - Linear Precision Frame */}
                 <div style={{
                   padding: '20px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, rgba(108, 100, 153, 0.15) 0%, rgba(212, 161, 92, 0.1) 100%)',
-                  border: '1px solid var(--border-strong)',
+                  background: 'var(--color-obsidian)',
+                  border: '1px solid var(--color-graphite)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -835,19 +814,19 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                   gap: '16px'
                 }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span className="badge badge-violet" style={{ fontSize: '0.7rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <span className="badge badge-violet" style={{ fontSize: '0.68rem' }}>
                         🧠 Multimodal Vision Transformer
                       </span>
-                      <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
+                      <span className="badge badge-cyan" style={{ fontSize: '0.68rem' }}>
                         HTR (Handwritten Text Recognition)
                       </span>
                     </div>
-                    <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', margin: '4px 0' }}>
+                    <h3 style={{ fontSize: '1.3rem', color: 'var(--color-paper)', fontWeight: '510', letterSpacing: '-0.022em', margin: '4px 0' }}>
                       Handwriting Legibility Score: {evalResult.handwriting_analysis?.legibility_score || 85}/100
                     </h3>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      Legibility Rating: <strong style={{ color: (evalResult.handwriting_analysis?.legibility_score || 85) >= 75 ? 'var(--color-success)' : 'var(--color-primary)' }}>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--color-mist)' }}>
+                      Legibility Rating: <strong style={{ color: (evalResult.handwriting_analysis?.legibility_score || 85) >= 75 ? 'var(--color-pulse-green)' : 'var(--color-acid-lime)' }}>
                         {evalResult.handwriting_analysis?.legibility_grade || 'Good Script'}
                       </strong>
                     </div>
@@ -856,14 +835,14 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
                   <div style={{
                     padding: '12px 18px',
                     borderRadius: '8px',
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--color-carbon)',
+                    border: '1px solid var(--color-smoke)',
                     textAlign: 'center'
                   }}>
-                    <div style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--color-primary)' }}>
+                    <div style={{ fontSize: '1.6rem', fontWeight: '590', color: 'var(--color-paper)' }}>
                       {evalResult.handwriting_analysis?.legibility_score || 85}%
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--color-fog)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       OCR Confidence
                     </div>
                   </div>
@@ -995,12 +974,12 @@ export default function AnswerEvaluator({ syllabusData, apiKey, modelName, saved
 
                 {/* Presentation & Legibility Advice */}
                 {evalResult.handwriting_analysis?.presentation_tips && (
-                  <div style={{ padding: '14px', background: 'rgba(212, 161, 92, 0.08)', borderRadius: '8px', border: '1px solid rgba(212, 161, 92, 0.25)' }}>
-                    <h5 style={{ fontSize: '0.82rem', color: 'var(--color-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ padding: '14px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid var(--color-graphite)' }}>
+                    <h5 style={{ fontSize: '0.82rem', color: 'var(--color-mist)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>💡</span>
                       <span>Exam Handwriting Presentation Advice</span>
                     </h5>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--color-fog)', lineHeight: 1.5, margin: 0 }}>
                       {evalResult.handwriting_analysis.presentation_tips}
                     </p>
                   </div>

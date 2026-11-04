@@ -305,16 +305,16 @@ export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashc
                 let textWeight = '500';
 
                 if (node.type === 'subject') {
-                  fill = isActive ? '#C2904B' : 'var(--color-primary)';
-                  border = 'rgba(212, 161, 92, 0.5)';
-                  textWeight = '700';
+                  fill = isActive ? 'rgba(228, 242, 34, 0.15)' : 'var(--color-obsidian)';
+                  border = isActive ? 'var(--color-acid-lime)' : 'var(--color-smoke)';
+                  textWeight = '510';
                 } else if (node.type === 'module') {
-                  fill = isActive ? 'rgba(108, 100, 153, 0.25)' : 'var(--bg-elevated)';
-                  border = isActive ? 'var(--color-accent)' : 'var(--border-strong)';
-                  textWeight = '600';
+                  fill = isActive ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-carbon)';
+                  border = isActive ? 'var(--color-iris-violet)' : 'var(--color-graphite)';
+                  textWeight = '510';
                 } else if (node.type === 'topic') {
-                  fill = isActive ? 'rgba(212, 161, 92, 0.3)' : 'var(--bg-elevated)';
-                  border = isActive ? 'var(--color-primary)' : 'var(--border-strong)';
+                  fill = isActive ? 'rgba(255, 255, 255, 0.08)' : 'var(--color-obsidian)';
+                  border = isActive ? 'var(--color-mist)' : 'var(--color-graphite)';
                 }
 
                 return (
@@ -371,12 +371,13 @@ export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashc
                       x={node.type === 'topic' ? 14 : 80}
                       y={4}
                       textAnchor={node.type === 'topic' ? "start" : "middle"}
-                      fill={node.type === 'subject' ? '#0D0D0F' : (isActive ? 'var(--color-primary)' : 'var(--text-primary)')}
+                      fill={isActive ? 'var(--color-paper)' : 'var(--color-mist)'}
                       style={{
                         fontSize: node.type === 'subject' ? '0.85rem' : '0.8rem',
                         fontWeight: textWeight,
                         pointerEvents: 'none',
-                        fontFamily: node.type === 'subject' ? 'var(--font-serif)' : 'var(--font-sans)',
+                        fontFamily: 'var(--font-sans)',
+                        letterSpacing: '-0.010em',
                         transition: 'var(--transition-fast)'
                       }}
                     >

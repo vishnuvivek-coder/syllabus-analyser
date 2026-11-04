@@ -139,11 +139,11 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
         <div>
           <label className="form-label">Upload Question Paper PDF</label>
           <div style={{
-            border: '1.5px dashed var(--border-strong)',
+            border: '1px dashed var(--color-smoke)',
             borderRadius: '8px',
             padding: '20px 14px',
             textAlign: 'center',
-            backgroundColor: paperFile ? 'rgba(212, 161, 92, 0.08)' : 'var(--bg-elevated)',
+            backgroundColor: paperFile ? 'rgba(255, 255, 255, 0.04)' : 'var(--color-obsidian)',
             cursor: 'pointer'
           }}>
             <input
@@ -370,9 +370,9 @@ export default function PaperAnalyzer({ syllabusData, apiKey, modelName, onForwa
                     key={i}
                     style={{
                       padding: '16px',
-                      background: 'linear-gradient(145deg, rgba(212, 161, 92, 0.08) 0%, rgba(26, 26, 29, 0.9) 100%)',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-strong)',
+                      background: 'var(--color-obsidian)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--color-graphite)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '8px'

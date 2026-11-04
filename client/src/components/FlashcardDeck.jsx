@@ -452,15 +452,15 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
 
       {/* Batch Generation Progress Indicator */}
       {batchProgress && (
-        <div className="glass-panel" style={{ padding: '8px 16px', background: 'rgba(212, 161, 92, 0.08)', borderColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '14px', height: '14px', border: '2px solid rgba(212, 161, 92, 0.3)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: '600' }}>{batchProgress}</span>
+        <div className="glass-panel" style={{ padding: '8px 16px', background: 'rgba(228, 242, 34, 0.08)', borderColor: 'var(--color-acid-lime)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '14px', height: '14px', border: '2px solid rgba(228, 242, 34, 0.3)', borderTopColor: 'var(--color-acid-lime)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <span style={{ fontSize: '0.8rem', color: 'var(--color-acid-lime)', fontWeight: '510' }}>{batchProgress}</span>
         </div>
       )}
 
       {/* Error Notice */}
       {error && (
-        <div className="glass-panel" style={{ padding: '12px 16px', borderColor: 'var(--color-danger)', backgroundColor: 'rgba(244, 63, 94, 0.08)', color: '#fca5a5', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="glass-panel" style={{ padding: '12px 16px', borderColor: 'var(--color-coral-red)', backgroundColor: 'rgba(235, 87, 87, 0.08)', color: '#fca5a5', fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{error}</span>
           <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>✕</button>
         </div>
@@ -470,11 +470,11 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
       {!currentDeck ? (
         // Empty State: Prompt user to generate
         <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px 20px', textAlign: 'center', gap: '16px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'rgba(212, 161, 92, 0.12)', border: '1px solid rgba(212, 161, 92, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: 'var(--color-obsidian)', border: '1px solid var(--color-smoke)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
             🗂️
           </div>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-serif)', color: 'var(--text-primary)', marginBottom: '6px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-sans)', fontWeight: '510', color: 'var(--color-paper)', marginBottom: '6px' }}>
               Flashcards for {selectedTopicName || 'Selected Topic'}
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.5 }}>
@@ -597,8 +597,9 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="badge" style={{
-                              background: currentCard.type === 'formula' ? 'rgba(212, 161, 92, 0.18)' : (currentCard.type === 'pitfall' ? 'rgba(244, 63, 94, 0.18)' : 'rgba(108, 100, 153, 0.25)'),
-                              color: currentCard.type === 'formula' ? 'var(--color-primary)' : (currentCard.type === 'pitfall' ? 'var(--color-danger)' : 'var(--color-accent)')
+                              background: currentCard.type === 'formula' ? 'rgba(228, 242, 34, 0.12)' : (currentCard.type === 'pitfall' ? 'rgba(235, 87, 87, 0.12)' : 'rgba(99, 102, 241, 0.15)'),
+                              color: currentCard.type === 'formula' ? 'var(--color-acid-lime)' : (currentCard.type === 'pitfall' ? 'var(--color-coral-red)' : '#a5b4fc'),
+                              borderColor: 'var(--color-graphite)'
                             }}>
                               {currentCard.category_label || currentCard.type?.toUpperCase()}
                             </span>
@@ -637,7 +638,7 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
 
                         {/* Front Content */}
                         <div style={{ margin: 'auto 0', textAlign: 'center', padding: '10px 0' }}>
-                          <h4 style={{ fontSize: '1rem', color: 'var(--color-primary)', fontFamily: 'var(--font-serif)', marginBottom: '12px' }}>
+                          <h4 style={{ fontSize: '1rem', color: 'var(--color-paper)', fontFamily: 'var(--font-sans)', fontWeight: '510', marginBottom: '12px' }}>
                             {currentCard.title || selectedTopicName}
                           </h4>
                           <div style={{ fontSize: '1.1rem', lineHeight: 1.6, color: 'var(--text-primary)', fontWeight: '500' }}>
@@ -669,10 +670,10 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
                           flexDirection: 'column',
                           justifyContent: 'space-between',
                           padding: '24px',
-                          border: isCurrentMastered ? '2px solid var(--color-success)' : '1px solid rgba(212, 161, 92, 0.4)',
-                          background: 'linear-gradient(145deg, #141417 0%, #0D0D0F 100%)',
-                          boxShadow: '0 12px 36px rgba(0,0,0,0.6)',
-                          borderRadius: '16px',
+                          border: isCurrentMastered ? '1px solid var(--color-pulse-green)' : '1px solid var(--color-graphite)',
+                          background: 'var(--color-obsidian)',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                          borderRadius: '12px',
                           overflowY: 'auto'
                         }}
                       >
@@ -715,8 +716,8 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
                           <MathText text={currentCard.back} />
 
                           {currentCard.key_takeaway && (
-                            <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(212, 161, 92, 0.08)', borderLeft: '3px solid var(--color-primary)', borderRadius: '4px', fontSize: '0.82rem', color: 'var(--color-primary)' }}>
-                              <strong>Key Takeaway:</strong> <MathText text={currentCard.key_takeaway} />
+                            <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(255, 255, 255, 0.03)', borderLeft: '3px solid var(--color-acid-lime)', borderRadius: '4px', fontSize: '0.82rem', color: 'var(--color-mist)' }}>
+                              <strong style={{ color: 'var(--color-paper)' }}>Key Takeaway:</strong> <MathText text={currentCard.key_takeaway} />
                             </div>
                           )}
                         </div>
@@ -864,8 +865,9 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
                     {/* Header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span className="badge" style={{
-                        background: card.type === 'formula' ? 'rgba(212, 161, 92, 0.18)' : (card.type === 'pitfall' ? 'rgba(244, 63, 94, 0.18)' : 'rgba(108, 100, 153, 0.25)'),
-                        color: card.type === 'formula' ? 'var(--color-primary)' : (card.type === 'pitfall' ? 'var(--color-danger)' : 'var(--color-accent)')
+                        background: card.type === 'formula' ? 'rgba(228, 242, 34, 0.12)' : (card.type === 'pitfall' ? 'rgba(235, 87, 87, 0.12)' : 'rgba(99, 102, 241, 0.15)'),
+                        color: card.type === 'formula' ? 'var(--color-acid-lime)' : (card.type === 'pitfall' ? 'var(--color-coral-red)' : '#a5b4fc'),
+                        borderColor: 'var(--color-graphite)'
                       }}>
                         {card.category_label || card.type}
                       </span>
@@ -888,7 +890,7 @@ export default function FlashcardDeck({ syllabusData, apiKey, modelName, initial
 
                     {/* Question / Prompt */}
                     <div>
-                      <h4 style={{ fontSize: '0.85rem', color: 'var(--color-primary)', fontFamily: 'var(--font-serif)', marginBottom: '6px' }}>
+                      <h4 style={{ fontSize: '0.85rem', color: 'var(--color-paper)', fontFamily: 'var(--font-sans)', fontWeight: '510', marginBottom: '6px' }}>
                         {card.title}
                       </h4>
                       <div style={{ fontSize: '0.88rem', lineHeight: 1.5, color: 'var(--text-primary)', fontWeight: '600' }}>

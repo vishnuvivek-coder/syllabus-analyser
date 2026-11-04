@@ -218,18 +218,18 @@ export default function App() {
       
       {/* Top Navigation Header */}
       <header style={{
-        height: '65px',
+        height: '56px',
         flexShrink: 0,
-        padding: '0 24px',
-        borderBottom: '1px solid var(--border-subtle)',
+        padding: '0 20px',
+        borderBottom: '1px solid var(--color-graphite)',
         display: 'flex',
         justify: 'space-between',
         alignItems: 'center',
-        background: 'var(--bg-secondary)',
+        background: 'var(--color-carbon)',
         zIndex: 10
       }}>
         {/* Left Side: Logo & Dedicated Top-Left History Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           
           {/* Top-Left History Button */}
           <button 
@@ -237,79 +237,80 @@ export default function App() {
             onClick={() => setShowHistoryDrawer(true)} 
             className="btn btn-secondary" 
             style={{ 
-              padding: '6px 14px', 
-              fontSize: '0.8rem', 
+              padding: '6px 12px', 
+              fontSize: '0.78rem', 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
-              borderColor: historySessions.length > 0 ? 'var(--color-primary)' : 'var(--border-subtle)'
+              borderRadius: '6px'
             }}
             title="Open Analysis History Sessions"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
             <span>History</span>
             {historySessions.length > 0 && (
-              <span className="badge badge-violet" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
+              <span className="badge badge-violet" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
                 {historySessions.length}
               </span>
             )}
           </button>
 
-          <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)' }} />
+          <div style={{ width: '1px', height: '20px', background: 'var(--color-graphite)' }} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: user.role === 'faculty' ? 'var(--color-primary)' : '#7BAE7F',
+              width: '28px',
+              height: '28px',
+              borderRadius: '6px',
+              background: 'var(--color-obsidian)',
+              border: '1px solid var(--color-smoke)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: user.role === 'faculty' ? '0 2px 14px rgba(212, 161, 92, 0.35)' : '0 2px 14px rgba(123, 174, 127, 0.35)'
+              justifyContent: 'center'
             }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D0D0F" strokeWidth="2.4">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
               </svg>
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h1 style={{ fontSize: '1.15rem', fontFamily: 'var(--font-serif)', fontWeight: '700', lineHeight: 1.1 }}>
+                <h1 style={{ fontSize: '0.95rem', fontFamily: 'var(--font-sans)', fontWeight: '510', letterSpacing: '-0.015em', color: 'var(--color-paper)', lineHeight: 1.1 }}>
                   Syllabus Engine
                 </h1>
-                <span className={`badge ${user.role === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 6px', color: 'var(--color-mist)', borderColor: 'var(--color-graphite)' }}>
                   {user.role === 'faculty' ? 'Faculty Portal' : 'Student Portal'}
                 </span>
               </div>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', letterSpacing: '0.04em', fontWeight: '500' }}>
-                {user.role === 'faculty' ? 'CURRICULUM ARCHITECTURE & EXAMINATION DESIGN' : 'LEARNING ROADMAPS & ACTIVE REVISION'}
+              <span style={{ fontSize: '0.66rem', color: 'var(--color-fog)', letterSpacing: '0.02em', fontWeight: '400', fontFamily: 'var(--font-mono)' }}>
+                {user.role === 'faculty' ? 'CURRICULUM ARCHITECTURE & ASSESSMENT' : 'LEARNING ROADMAPS & ACTIVE REVISION'}
               </span>
             </div>
           </div>
         </div>
 
         {/* Right Side: Active Subject & User Profile Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {data && (
             <>
               <div style={{
-                padding: '5px 10px',
+                padding: '4px 10px',
                 borderRadius: '6px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '0.78rem',
-                fontWeight: '500'
+                background: 'var(--color-obsidian)',
+                border: '1px solid var(--color-graphite)',
+                fontSize: '0.76rem',
+                fontWeight: '400',
+                color: 'var(--color-fog)'
               }}>
-                Subject: <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{data.subject_name}</span>
+                Subject: <span style={{ color: 'var(--color-paper)', fontWeight: '510' }}>{data.subject_name}</span>
               </div>
 
               <button 
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
                 className="btn btn-secondary" 
-                style={{ padding: '5px 10px', fontSize: '0.78rem' }}
+                style={{ padding: '5px 10px', fontSize: '0.76rem' }}
               >
                 {isSidebarOpen ? 'Hide Controls' : 'Show Controls'}
               </button>
@@ -317,31 +318,31 @@ export default function App() {
               <button 
                 onClick={handleResetAnalysis} 
                 className="btn btn-secondary" 
-                style={{ padding: '5px 10px', fontSize: '0.78rem', color: 'var(--color-accent)' }}
+                style={{ padding: '5px 10px', fontSize: '0.76rem', color: 'var(--color-mist)' }}
               >
                 New Analysis
               </button>
             </>
           )}
 
-          <div style={{ width: '1px', height: '22px', background: 'var(--border-subtle)' }} />
+          <div style={{ width: '1px', height: '20px', background: 'var(--color-graphite)' }} />
 
           {/* User Profile Pill */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '4px 10px',
-            background: 'var(--bg-elevated)',
-            borderRadius: '20px',
-            border: `1px solid ${user.role === 'faculty' ? 'rgba(212, 161, 92, 0.3)' : 'rgba(123, 174, 127, 0.3)'}`
+            padding: '3px 10px',
+            background: 'var(--color-obsidian)',
+            borderRadius: '9999px',
+            border: '1px solid var(--color-graphite)'
           }}>
-            <span style={{ fontSize: '1.05rem' }}>{user.avatar}</span>
+            <span style={{ fontSize: '0.95rem' }}>{user.avatar}</span>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1.1 }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: '510', color: 'var(--color-paper)', lineHeight: 1.1 }}>
                 {user.name}
               </span>
-              <span style={{ fontSize: '0.65rem', color: user.role === 'faculty' ? 'var(--color-primary)' : '#7BAE7F', fontWeight: '600' }}>
+              <span style={{ fontSize: '0.64rem', color: 'var(--color-fog)', fontWeight: '400' }}>
                 {user.badge}
               </span>
             </div>
@@ -364,7 +365,7 @@ export default function App() {
             type="button"
             onClick={handleLogout}
             className="btn btn-secondary"
-            style={{ padding: '5px 10px', fontSize: '0.74rem', color: 'var(--color-danger)' }}
+            style={{ padding: '5px 10px', fontSize: '0.74rem', color: 'var(--color-coral-red)', borderColor: 'rgba(235, 87, 87, 0.25)' }}
             title="Log out of current account"
           >
             <span>🚪</span>
@@ -530,78 +531,86 @@ export default function App() {
 
 
 
-            {/* Navigation Tabs (Tailored per role) */}
-            <div className="glass-panel" style={{ padding: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {/* Navigation Tabs (Tailored per role) - Linear Precision Segmented Control */}
+            <div style={{ 
+              background: 'var(--color-carbon)', 
+              border: '1px solid var(--color-graphite)', 
+              borderRadius: '12px', 
+              padding: '4px', 
+              display: 'flex', 
+              gap: '4px', 
+              flexWrap: 'wrap' 
+            }}>
               {user.role === 'faculty' ? (
                 <>
                   <button 
                     onClick={() => setActiveTab('blueprint')} 
-                    className={`btn ${activeTab === 'blueprint' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Design official exam papers with Bloom taxonomy"
                   >
                     📐 Exam Designer
                   </button>
                   <button 
                     onClick={() => setActiveTab('variants')} 
-                    className={`btn ${activeTab === 'variants' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'variants' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Generate multi-set exam questions (Set A, B, C) to prevent cheating"
                   >
                     🔀 Question Variants
                   </button>
                   <button 
                     onClick={() => setActiveTab('lab')} 
-                    className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Author and curate departmental question repository"
                   >
                     🧪 Question Lab
                   </button>
                   <button 
                     onClick={() => setActiveTab('pastpapers')} 
-                    className={`btn ${activeTab === 'pastpapers' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Audit previous year papers for syllabus coverage gaps"
                   >
                     📑 Paper Auditor
                   </button>
                   <button 
                     onClick={() => setActiveTab('graph')} 
-                    className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="View syllabus prerequisite architecture"
                   >
                     🗺️ Knowledge Map
                   </button>
                   <button 
                     onClick={() => setActiveTab('concepts')} 
-                    className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Inspect concept dependency flows"
                   >
                     💡 Concepts
                   </button>
                   <button 
                     onClick={() => setActiveTab('modules')} 
-                    className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Module structure and learning outcomes"
                   >
                     📚 Curriculum
                   </button>
                   <button 
                     onClick={() => setActiveTab('analytics')} 
-                    className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Course cognitive depth and Bloom distribution"
                   >
                     📊 Analytics
                   </button>
                   <button 
                     onClick={() => setActiveTab('evaluator')} 
-                    className={`btn ${activeTab === 'evaluator' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Grade and evaluate student answer submissions"
                   >
                     ✍️ Evaluator
@@ -611,64 +620,64 @@ export default function App() {
                 <>
                   <button 
                     onClick={() => setActiveTab('graph')} 
-                    className={`btn ${activeTab === 'graph' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Interactive roadmap showing what to learn first"
                   >
                     🗺️ Learning Map
                   </button>
                   <button 
                     onClick={() => setActiveTab('concepts')} 
-                    className={`btn ${activeTab === 'concepts' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Concept dependencies and prerequisite paths"
                   >
                     💡 Concept Flow
                   </button>
                   <button 
                     onClick={() => setActiveTab('flashcards')} 
-                    className={`btn ${activeTab === 'flashcards' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Active recall flashcard decks for quick exam revision"
                   >
                     🗂️ AI Flashcards
                   </button>
                   <button 
                     onClick={() => setActiveTab('evaluator')} 
-                    className={`btn ${activeTab === 'evaluator' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Test your answers and get instant private grading and feedback"
                   >
                     ✍️ AI Evaluator
                   </button>
                   <button 
                     onClick={() => setActiveTab('lab')} 
-                    className={`btn ${activeTab === 'lab' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Practice solving questions by topic"
                   >
                     📝 Practice Lab
                   </button>
                   <button 
                     onClick={() => setActiveTab('modules')} 
-                    className={`btn ${activeTab === 'modules' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Review course modules and key topics"
                   >
                     📚 Study Modules
                   </button>
                   <button 
                     onClick={() => setActiveTab('pastpapers')} 
-                    className={`btn ${activeTab === 'pastpapers' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Explore recurring previous exam questions"
                   >
                     🔄 Past Papers
                   </button>
                   <button 
                     onClick={() => setActiveTab('analytics')} 
-                    className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '8px 12px', fontSize: '0.78rem', flex: 1, minWidth: '95px' }}
+                    className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Track syllabus coverage and difficulty distribution"
                   >
                     📊 Coverage
@@ -779,47 +788,43 @@ export default function App() {
             alignItems: 'center',
             gap: '24px'
           }}>
-            {/* Centered Headline with Ambient Glow */}
+            {/* Centered Headline - Linear Midnight Precision Style */}
             <div style={{ 
               textAlign: 'center', 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center', 
-              gap: '12px',
-              position: 'relative',
-              padding: '20px 0'
+              gap: '14px',
+              padding: '24px 0 12px'
             }}>
-              {/* Subtle Ambient Glow Behind Hero */}
-              <div style={{
-                position: 'absolute',
-                top: '-40px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '450px',
-                height: '250px',
-                background: 'radial-gradient(circle, rgba(212, 161, 92, 0.12) 0%, rgba(108, 100, 153, 0.08) 50%, transparent 80%)',
-                filter: 'blur(40px)',
-                pointerEvents: 'none',
-                zIndex: 0
-              }} />
-
-              <span className={`badge ${user.role === 'faculty' ? 'badge-amber' : 'badge-emerald'}`} style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.7rem', zIndex: 1 }}>
-                {user.role === 'faculty' ? 'FACULTY & INSTRUCTOR PORTAL' : 'STUDENT & LEARNER STUDY PORTAL'}
+              <span className="badge" style={{ 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.08em', 
+                fontSize: '0.68rem', 
+                padding: '3px 10px',
+                borderColor: 'var(--color-graphite)',
+                color: 'var(--color-fog)',
+                background: 'rgba(255, 255, 255, 0.04)'
+              }}>
+                {user.role === 'faculty' ? 'Faculty & Instructor Workspace' : 'Student & Learner Workspace'}
               </span>
 
-              <h1 style={{ fontSize: '3rem', fontFamily: 'var(--font-serif)', fontWeight: '700', lineHeight: '1.16', color: 'var(--text-primary)', margin: '4px 0', zIndex: 1 }}>
-                {user.role === 'faculty' ? (
-                  <>
-                    Curriculum Intelligence & <span style={{ color: 'var(--color-primary)', fontStyle: 'italic', textShadow: '0 0 30px rgba(212, 161, 92, 0.3)' }}>Assessment Architecture</span>
-                  </>
-                ) : (
-                  <>
-                    Interactive Learning Roadmaps & <span style={{ color: '#7BAE7F', fontStyle: 'italic', textShadow: '0 0 30px rgba(123, 174, 127, 0.3)' }}>Exam Preparation</span>
-                  </>
-                )}
+              <h1 style={{ 
+                fontSize: '2.5rem', 
+                fontFamily: 'var(--font-sans)', 
+                fontWeight: '510', 
+                lineHeight: '1.15', 
+                letterSpacing: '-0.022em',
+                color: 'var(--color-paper)', 
+                margin: '4px 0',
+                maxWidth: '680px'
+              }}>
+                {user.role === 'faculty' 
+                  ? 'Curriculum Intelligence & Assessment Architecture' 
+                  : 'Interactive Learning Roadmaps & Exam Preparation'}
               </h1>
 
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.96rem', lineHeight: '1.65', maxWidth: '620px', fontWeight: '400', zIndex: 1 }}>
+              <p style={{ color: 'var(--color-fog)', fontSize: '0.92rem', lineHeight: '1.6', maxWidth: '620px', fontWeight: '400', letterSpacing: '-0.010em' }}>
                 {user.role === 'faculty' 
                   ? 'Upload an accredited course syllabus, paste textbook chapters, or attach past papers to generate Bloom-aligned exam blueprints, multi-set variants (Set A/B/C), and question banks.'
                   : 'Upload your syllabus or lecture notes to generate interactive prerequisite dependency graphs, active recall flashcards, and submit practice answers for instant AI grading.'}

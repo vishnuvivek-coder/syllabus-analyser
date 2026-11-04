@@ -54,7 +54,6 @@ export default function LoginPage({ onLogin }) {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // Check against demo accounts
     let matchedUser = null;
     if (
       (cleanId === DEMO_USERS.faculty.id || cleanId === DEMO_USERS.faculty.email) &&
@@ -74,7 +73,7 @@ export default function LoginPage({ onLogin }) {
       }
       onLogin(matchedUser);
     } else {
-      setError('Invalid ID or Password. Please check the demo credentials below.');
+      setError('Invalid ID or Password. Check the default credentials below.');
     }
   };
 
@@ -82,7 +81,7 @@ export default function LoginPage({ onLogin }) {
     <div style={{
       minHeight: '100vh',
       width: '100vw',
-      backgroundColor: 'var(--bg-primary)',
+      backgroundColor: 'var(--color-void)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -91,26 +90,14 @@ export default function LoginPage({ onLogin }) {
       position: 'relative',
       overflowX: 'hidden'
     }}>
-      {/* Ambient Glow Effects */}
+      {/* Linear Atmospheric Floor */}
       <div style={{
         position: 'absolute',
-        top: '10%',
-        left: '25%',
-        width: '500px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(212, 161, 92, 0.08) 0%, rgba(108, 100, 153, 0.05) 50%, transparent 80%)',
-        filter: 'blur(60px)',
-        pointerEvents: 'none',
-        zIndex: 0
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '10%',
-        right: '25%',
-        width: '450px',
-        height: '350px',
-        background: 'radial-gradient(circle, rgba(108, 100, 153, 0.1) 0%, rgba(212, 161, 92, 0.04) 50%, transparent 80%)',
-        filter: 'blur(60px)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 50% 20%, rgba(228, 242, 34, 0.03) 0%, transparent 60%)',
         pointerEvents: 'none',
         zIndex: 0
       }} />
@@ -118,7 +105,7 @@ export default function LoginPage({ onLogin }) {
       {/* Main Container */}
       <div style={{
         width: '100%',
-        maxWidth: '520px',
+        maxWidth: '480px',
         zIndex: 1,
         display: 'flex',
         flexDirection: 'column',
@@ -126,319 +113,326 @@ export default function LoginPage({ onLogin }) {
         gap: '24px'
       }}>
         
-        {/* Academic Header Branding */}
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        {/* Linear Precision Header */}
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '10px',
-            padding: '6px 16px',
-            borderRadius: '24px',
-            background: 'rgba(212, 161, 92, 0.08)',
-            border: '1px solid rgba(212, 161, 92, 0.25)',
+            gap: '8px',
+            padding: '4px 12px',
+            borderRadius: 'var(--radius-pills)',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid var(--color-graphite)',
             marginBottom: '4px'
           }}>
-            <span style={{ fontSize: '1.1rem' }}>🏛️</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-acid-lime)" strokeWidth="2.5">
+              <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+            </svg>
             <span style={{
-              fontSize: '0.75rem',
-              fontWeight: '700',
-              letterSpacing: '0.08em',
+              fontSize: '0.72rem',
+              fontWeight: '510',
+              letterSpacing: '0.04em',
               textTransform: 'uppercase',
-              color: 'var(--color-primary)'
+              color: 'var(--color-mist)'
             }}>
-              Academic Portal Authentication
+              Curriculum Precision System
             </span>
           </div>
 
           <h1 style={{
-            fontSize: '2.2rem',
-            fontFamily: 'var(--font-serif)',
-            fontWeight: '700',
-            color: 'var(--text-primary)',
-            lineHeight: 1.2
+            fontSize: '2rem',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: '510',
+            letterSpacing: '-0.022em',
+            color: 'var(--color-paper)',
+            lineHeight: 1.15
           }}>
             Syllabus Engine
           </h1>
           
           <p style={{
-            color: 'var(--text-secondary)',
-            fontSize: '0.9rem',
-            maxWidth: '460px',
-            lineHeight: 1.5
+            color: 'var(--color-fog)',
+            fontSize: '0.85rem',
+            maxWidth: '400px',
+            lineHeight: 1.5,
+            letterSpacing: '-0.010em'
           }}>
-            Select your role to access curriculum design tools, question generation, and personalized student study pathways.
+            Midnight precision instrument for examination architecture, question curation, and student revision roadmaps.
           </p>
         </div>
 
-        {/* Login Form Card */}
+        {/* Login Form Card (Carbon frame at 12px radius) */}
         <div className="glass-panel" style={{
-          padding: '32px',
+          padding: '28px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '22px',
-          backgroundColor: 'var(--bg-secondary)',
-          boxShadow: 'var(--shadow-lg)',
+          gap: '20px',
+          backgroundColor: 'var(--color-carbon)',
+          border: '1px solid var(--color-graphite)',
+          borderRadius: 'var(--radius-cards)',
+          boxShadow: 'var(--shadow-subtle), var(--shadow-sm)',
           width: '100%'
         }}>
             
-            {/* Role Tab Switcher */}
-            <div>
-              <label className="form-label" style={{ marginBottom: '8px' }}>Select Login Role</label>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-                background: 'var(--bg-elevated)',
-                padding: '4px',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border-subtle)'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => handleRoleTabChange('faculty')}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: selectedRole === 'faculty' ? 'var(--color-primary)' : 'transparent',
-                    color: selectedRole === 'faculty' ? '#0D0D0F' : 'var(--text-secondary)',
-                    fontWeight: selectedRole === 'faculty' ? '700' : '500',
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'var(--transition-fast)'
-                  }}
-                >
-                  <span>👨‍🏫</span>
-                  <span>Faculty / Instructor</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleRoleTabChange('student')}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: selectedRole === 'student' ? 'var(--color-primary)' : 'transparent',
-                    color: selectedRole === 'student' ? '#0D0D0F' : 'var(--text-secondary)',
-                    fontWeight: selectedRole === 'student' ? '700' : '500',
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'var(--transition-fast)'
-                  }}
-                >
-                  <span>🎓</span>
-                  <span>Student / Learner</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Demo Fill Buttons */}
+          {/* Role Tab Switcher (Segmented Obsidian Bar) */}
+          <div>
+            <label className="form-label">Active Workspace Role</label>
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              padding: '14px',
-              background: 'rgba(212, 161, 92, 0.05)',
-              border: '1px dashed rgba(212, 161, 92, 0.3)',
-              borderRadius: 'var(--radius-sm)'
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '4px',
+              background: 'var(--color-obsidian)',
+              padding: '3px',
+              borderRadius: 'var(--radius-inputs)',
+              border: '1px solid var(--color-graphite)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: '700', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  ⚡ Quick Demo Login
-                </span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>1-Click Instant Access</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleRoleTabChange('faculty')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: selectedRole === 'faculty' ? 'var(--color-graphite)' : 'transparent',
+                  color: selectedRole === 'faculty' ? 'var(--color-paper)' : 'var(--color-fog)',
+                  fontWeight: selectedRole === 'faculty' ? '510' : '400',
+                  fontSize: '0.82rem',
+                  letterSpacing: '-0.010em',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'var(--transition-fast)'
+                }}
+              >
+                <span>👨‍🏫</span>
+                <span>Faculty / Instructor</span>
+              </button>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('faculty')}
-                  className="btn btn-secondary"
-                  style={{
-                    padding: '8px 10px',
-                    fontSize: '0.78rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    borderColor: selectedRole === 'faculty' ? 'var(--color-primary)' : 'var(--border-subtle)'
-                  }}
-                >
-                  <span>👨‍🏫</span>
-                  <span>Log in as Faculty</span>
-                </button>
+              <button
+                type="button"
+                onClick={() => handleRoleTabChange('student')}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: selectedRole === 'student' ? 'var(--color-graphite)' : 'transparent',
+                  color: selectedRole === 'student' ? 'var(--color-paper)' : 'var(--color-fog)',
+                  fontWeight: selectedRole === 'student' ? '510' : '400',
+                  fontSize: '0.82rem',
+                  letterSpacing: '-0.010em',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'var(--transition-fast)'
+                }}
+              >
+                <span>🎓</span>
+                <span>Student / Learner</span>
+              </button>
+            </div>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('student')}
-                  className="btn btn-secondary"
-                  style={{
-                    padding: '8px 10px',
-                    fontSize: '0.78rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    borderColor: selectedRole === 'student' ? 'var(--color-primary)' : 'var(--border-subtle)'
-                  }}
-                >
-                  <span>🎓</span>
-                  <span>Log in as Student</span>
-                </button>
-              </div>
+          {/* Quick Demo Fill Buttons */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '12px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--color-graphite)',
+            borderRadius: 'var(--radius-inputs)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: '510', color: 'var(--color-mist)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                ⚡ Instant Access Demo
+              </span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--color-fog)' }}>1-Click Sign In</span>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div style={{
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(224, 106, 96, 0.12)',
-                border: '1px solid var(--color-danger)',
-                color: '#fca5a5',
-                fontSize: '0.82rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span>⚠️</span>
-                <span>{error}</span>
-              </div>
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('faculty')}
+                className="btn btn-secondary"
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '0.76rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  borderColor: selectedRole === 'faculty' ? 'var(--color-smoke)' : 'var(--color-graphite)'
+                }}
+              >
+                <span>👨‍🏫</span>
+                <span>Log in as Faculty</span>
+              </button>
 
-            {/* Standard Login Form */}
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <label className="form-label">
-                  {selectedRole === 'faculty' ? 'Faculty ID or Email' : 'Student ID or Email'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={selectedRole === 'faculty' ? 'faculty or faculty@university.edu' : 'student or student@university.edu'}
-                  className="form-input"
-                  style={{ fontSize: '0.9rem' }}
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('student')}
+                className="btn btn-secondary"
+                style={{
+                  padding: '6px 10px',
+                  fontSize: '0.76rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  borderColor: selectedRole === 'student' ? 'var(--color-smoke)' : 'var(--color-graphite)'
+                }}
+              >
+                <span>🎓</span>
+                <span>Log in as Student</span>
+              </button>
+            </div>
+          </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label className="form-label" style={{ margin: 0 }}>Password</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--color-primary)',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      textDecoration: 'underline'
-                    }}
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="form-input"
-                  style={{ fontSize: '0.9rem' }}
-                />
-              </div>
+          {/* Error Message */}
+          {error && (
+            <div style={{
+              padding: '8px 12px',
+              borderRadius: 'var(--radius-inputs)',
+              background: 'rgba(235, 87, 87, 0.08)',
+              border: '1px solid var(--color-coral-red)',
+              color: '#fca5a5',
+              fontSize: '0.78rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
 
-              {/* Optional Gemini API Key configuration */}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
+          {/* Standard Login Form */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="form-label">
+                {selectedRole === 'faculty' ? 'Faculty ID or Email' : 'Student ID or Email'}
+              </label>
+              <input
+                type="text"
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder={selectedRole === 'faculty' ? 'faculty or faculty@university.edu' : 'student or student@university.edu'}
+                className="form-input"
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" style={{ margin: 0 }}>Password</label>
                 <button
                   type="button"
-                  onClick={() => setShowApiInput(!showApiInput)}
+                  onClick={() => setShowPassword(!showPassword)}
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.78rem',
+                    color: 'var(--color-mist)',
+                    fontSize: '0.72rem',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
+                    textDecoration: 'underline'
                   }}
                 >
-                  <span>🔑</span>
-                  <span>{showApiInput ? 'Hide Gemini API Key' : 'Configure Gemini API Key (Optional)'}</span>
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
-
-                {showApiInput && (
-                  <div style={{ marginTop: '8px' }}>
-                    <input
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="Paste Gemini API Key (starts with AIza...)"
-                      className="form-input"
-                      style={{ fontSize: '0.8rem' }}
-                    />
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                      Stored safely in your browser localStorage.
-                    </span>
-                  </div>
-                )}
               </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '0.95rem',
-                  marginTop: '4px'
-                }}
-              >
-                Sign In to {selectedRole === 'faculty' ? 'Faculty Portal' : 'Student Portal'} →
-              </button>
-            </form>
-
-            {/* Clear Credentials Notice Box */}
-            <div style={{
-              padding: '12px 14px',
-              background: 'var(--bg-elevated)',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
-              fontSize: '0.76rem',
-              color: 'var(--text-secondary)'
-            }}>
-              <div style={{ fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                📋 Default Login Credentials:
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div>
-                  <span style={{ color: 'var(--color-primary)', fontWeight: '600' }}>Faculty:</span><br />
-                  ID: <code style={{ color: 'var(--text-primary)' }}>faculty</code><br />
-                  Pass: <code style={{ color: 'var(--text-primary)' }}>faculty123</code>
-                </div>
-                <div>
-                  <span style={{ color: '#7BAE7F', fontWeight: '600' }}>Student:</span><br />
-                  ID: <code style={{ color: 'var(--text-primary)' }}>student</code><br />
-                  Pass: <code style={{ color: 'var(--text-primary)' }}>student123</code>
-                </div>
-              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                className="form-input"
+              />
             </div>
 
+            {/* Optional Gemini API Key configuration */}
+            <div style={{ borderTop: '1px solid var(--color-graphite)', paddingTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowApiInput(!showApiInput)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-fog)',
+                  fontSize: '0.74rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>🔑</span>
+                <span>{showApiInput ? 'Hide API Key' : 'Configure Gemini API Key (Optional)'}</span>
+              </button>
+
+              {showApiInput && (
+                <div style={{ marginTop: '8px' }}>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Paste Gemini API Key (starts with AQ... or AIza...)"
+                    className="form-input"
+                    style={{ fontSize: '0.78rem' }}
+                  />
+                  <span style={{ fontSize: '0.68rem', color: 'var(--color-ash)', marginTop: '4px', display: 'block' }}>
+                    Stored locally in your browser localStorage.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Linear Acid Lime Primary CTA */}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                fontSize: '0.88rem',
+                marginTop: '4px'
+              }}
+            >
+              Sign In to {selectedRole === 'faculty' ? 'Faculty Portal' : 'Student Portal'} →
+            </button>
+          </form>
+
+          {/* Credentials Reference Box (Linear Precision) */}
+          <div style={{
+            padding: '10px 12px',
+            background: 'var(--color-obsidian)',
+            borderRadius: 'var(--radius-inputs)',
+            border: '1px solid var(--color-graphite)',
+            fontSize: '0.74rem',
+            color: 'var(--color-fog)'
+          }}>
+            <div style={{ fontWeight: '510', color: 'var(--color-mist)', marginBottom: '4px' }}>
+              Default Accounts:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div>
+                <span style={{ color: 'var(--color-paper)', fontWeight: '510' }}>Faculty:</span><br />
+                ID: <code style={{ color: 'var(--color-acid-lime)', fontFamily: 'var(--font-mono)' }}>faculty</code><br />
+                Pass: <code style={{ color: 'var(--color-mist)', fontFamily: 'var(--font-mono)' }}>faculty123</code>
+              </div>
+              <div>
+                <span style={{ color: 'var(--color-paper)', fontWeight: '510' }}>Student:</span><br />
+                ID: <code style={{ color: 'var(--color-pulse-green)', fontFamily: 'var(--font-mono)' }}>student</code><br />
+                Pass: <code style={{ color: 'var(--color-mist)', fontFamily: 'var(--font-mono)' }}>student123</code>
+              </div>
+            </div>
           </div>
+
+        </div>
 
       </div>
     </div>
