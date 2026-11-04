@@ -1647,13 +1647,31 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Cache control middleware for HTML and service worker files
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path === '/index.html' || req.path.endsWith('.html') || req.path === '/sw.js') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 // Serve frontend static build if present
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
+
+// Stale chunk handler: if browser requests an old hashed .js or .css chunk that doesn't exist
+app.get('/assets/*.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.send('console.warn("[SyllabiMind] Stale chunk requested; refreshing to load latest build..."); window.location.reload();');
+});
 
 // Fallback to index.html for SPA client-side routes (non-API)
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     const indexPath = path.join(__dirname, 'client', 'dist', 'index.html');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
     res.sendFile(indexPath, (err) => {
       if (err) {
         res.status(200).send('Syllabus Analyzer API is running. Run npm run build in client to serve frontend.');
