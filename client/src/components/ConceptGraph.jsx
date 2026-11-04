@@ -73,13 +73,13 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
 
   const getRelationshipColor = (type) => {
     switch (type) {
-      case 'PREREQUISITE': return 'var(--color-warning)';
-      case 'DEPENDS_ON': return 'var(--color-primary)';
-      case 'RELATED_TO': return 'var(--color-accent)';
-      case 'CONTRASTS_WITH': return 'var(--color-danger)';
-      case 'EXTENDS': return 'var(--color-secondary)';
-      case 'APPLIES_TO': return 'var(--color-success)';
-      default: return 'var(--border-glass-hover)';
+      case 'PREREQUISITE': return '#fbbf24';   // Vibrant Amber
+      case 'DEPENDS_ON': return '#e4f222';     // Electric Acid Lime
+      case 'RELATED_TO': return '#818cf8';     // Bright Iris Violet
+      case 'CONTRASTS_WITH': return '#f87171'; // Coral Red
+      case 'EXTENDS': return '#22d3ee';        // Signal Teal
+      case 'APPLIES_TO': return '#4ade80';     // Pulse Green
+      default: return '#94a3b8';
     }
   };
 
@@ -127,33 +127,61 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
           position: 'relative', 
           display: 'flex', 
           flexDirection: 'column',
-          backgroundColor: 'rgba(0,0,0,0.15)'
+          backgroundColor: 'var(--color-carbon)'
         }}
       >
-        {/* Floating Headers */}
+        {/* Floating Headers with High-Contrast Color Legend */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
+          alignItems: 'center',
           padding: '12px 20px', 
-          borderBottom: '1px solid var(--border-glass)',
-          background: 'rgba(8,7,16,0.3)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 5
+          borderBottom: '1px solid var(--color-graphite)',
+          background: 'rgba(15, 16, 17, 0.85)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 5,
+          flexWrap: 'wrap',
+          gap: '10px'
         }}>
-          <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', margin: 0 }}>Concept Dependency Network</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '0.65rem', alignItems: 'center' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-warning)' }} /> Prereq
+          <div>
+            <h3 style={{ fontSize: '0.95rem', color: 'var(--color-paper)', fontWeight: '510', margin: 0 }}>
+              Concept Dependency Network
+            </h3>
+            <span style={{ fontSize: '0.68rem', color: 'var(--color-fog)' }}>
+              Interactive knowledge topology with category & dependency highlights
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-accent)' }} /> Related
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-secondary)' }} /> Extends
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-danger)' }} /> Contrasts
-            </span>
+          </div>
+
+          {/* Color-Coded Point & Relationship Legend */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '0.7rem', alignItems: 'center' }}>
+            {/* Category Legend */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '8px', borderRight: '1px solid var(--color-graphite)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-paper)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#e4f222', boxShadow: '0 0 6px #e4f222' }} /> Advanced
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-paper)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#818cf8', boxShadow: '0 0 6px #818cf8' }} /> Intermediate
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-paper)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#02b8cc', boxShadow: '0 0 6px #02b8cc' }} /> Foundational
+              </span>
+            </div>
+
+            {/* Relationship Legend */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-mist)' }}>
+                <span style={{ width: '12px', height: '2px', backgroundColor: '#fbbf24' }} /> Prereq
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-mist)' }}>
+                <span style={{ width: '12px', height: '2px', backgroundColor: '#818cf8' }} /> Related
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-mist)' }}>
+                <span style={{ width: '12px', height: '2px', backgroundColor: '#22d3ee' }} /> Extends
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-mist)' }}>
+                <span style={{ width: '12px', height: '2px', backgroundColor: '#f87171', borderTop: '2px dashed #f87171' }} /> Contrasts
+              </span>
+            </div>
           </div>
         </div>
 
@@ -167,9 +195,9 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
           gap: '8px',
           zIndex: 5
         }}>
-          <button onClick={zoomIn} className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '1rem', width: '40px', height: '40px', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
-          <button onClick={zoomOut} className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '1rem', width: '40px', height: '40px', borderRadius: '8px', fontWeight: 'bold' }}>-</button>
-          <button onClick={resetZoom} className="btn btn-secondary" style={{ padding: '8px 8px', fontSize: '0.7rem', width: '40px', height: '40px', borderRadius: '8px' }}>Reset</button>
+          <button onClick={zoomIn} className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '1rem', width: '38px', height: '38px', borderRadius: '6px', fontWeight: '510' }}>+</button>
+          <button onClick={zoomOut} className="btn btn-secondary" style={{ padding: '8px 12px', fontSize: '1rem', width: '38px', height: '38px', borderRadius: '6px', fontWeight: '510' }}>-</button>
+          <button onClick={resetZoom} className="btn btn-secondary" style={{ padding: '6px 4px', fontSize: '0.68rem', width: '38px', height: '38px', borderRadius: '6px' }}>Reset</button>
         </div>
 
         {/* SVG Drawing Canvas */}
@@ -189,7 +217,7 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
             {/* Transform Group */}
             <g transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}>
               
-              {/* Draw Relationships */}
+              {/* Draw Relationships with high visibility */}
               {graph.relationships?.map((rel, idx) => {
                 const srcNode = conceptMap[rel.source];
                 const tgtNode = conceptMap[rel.target];
@@ -206,57 +234,77 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                     x2={tgtNode.x}
                     y2={tgtNode.y}
                     stroke={color}
-                    strokeWidth={isLinkActive ? 2.5 : 1}
-                    strokeDasharray={rel.type === 'CONTRASTS_WITH' ? '4,4' : 'none'}
+                    strokeWidth={isLinkActive ? 2.8 : 1.6}
+                    strokeDasharray={rel.type === 'CONTRASTS_WITH' ? '5,4' : 'none'}
                     style={{
-                      opacity: isLinkActive ? 1 : (selectedConcept ? 0.05 : 0.35),
+                      opacity: isLinkActive ? 1 : (selectedConcept ? 0.12 : 0.65),
                       transition: 'var(--transition-smooth)'
                     }}
                   />
                 );
               })}
 
-              {/* Draw Concept Nodes */}
+              {/* Draw Highly Visible Concept Node Points */}
               {conceptNodes.map((node) => {
                 const highlight = getHighlightState(node.id);
-                let fill = 'var(--bg-secondary)';
-                let border = 'var(--border-glass)';
-                let size = 10;
-                let textWeight = 'normal';
-                let textColor = 'var(--text-primary)';
+                
+                // Determine vibrant category point color
+                let categoryColor = '#38bdf8'; // Electric Sky Blue default
+                let outerRadius = 13;
+                let innerRadius = 5;
 
-                // Category-based base configurations
-                if (node.category === 'foundational') {
-                  border = 'var(--color-success)';
-                  size = 12;
-                } else if (node.category === 'intermediate') {
-                  border = 'var(--color-accent)';
-                  size = 14;
-                } else if (node.category === 'advanced') {
-                  border = 'var(--color-primary)';
-                  size = 16;
-                  textWeight = '600';
+                const catLower = (node.category || '').toLowerCase();
+                if (catLower.includes('foundation') || catLower.includes('basic')) {
+                  categoryColor = '#02b8cc'; // Signal Teal
+                  outerRadius = 12;
+                  innerRadius = 4.5;
+                } else if (catLower.includes('intermediate') || catLower.includes('core')) {
+                  categoryColor = '#818cf8'; // Bright Iris Violet
+                  outerRadius = 14;
+                  innerRadius = 5.5;
+                } else if (catLower.includes('advanced') || catLower.includes('applied') || catLower.includes('complex')) {
+                  categoryColor = '#e4f222'; // Electric Acid Lime
+                  outerRadius = 16;
+                  innerRadius = 6.5;
                 }
 
-                // Highlight configurations
+                let outerFill = `${categoryColor}28`; // 16% opacity translucent halo
+                let strokeColor = categoryColor;
+                let strokeWidth = 2;
+                let coreColor = categoryColor; // Solid luminous inner center
+                let textColor = '#ffffff';
+                let textWeight = '510';
+                let opacity = 1;
+
+                // Highlight states when user clicks/focuses a node
                 if (highlight === 'active') {
-                  fill = 'rgba(139, 92, 246, 0.3)';
-                  border = 'var(--color-primary)';
-                  size += 4;
+                  outerFill = `${categoryColor}45`;
+                  strokeColor = '#ffffff';
+                  strokeWidth = 3;
+                  outerRadius += 4;
+                  innerRadius += 2;
+                  textColor = '#ffffff';
+                  textWeight = '600';
                 } else if (highlight === 'prereq') {
-                  fill = 'rgba(245, 158, 11, 0.2)';
-                  border = 'var(--color-warning)';
-                  size += 2;
+                  coreColor = '#fbbf24';
+                  strokeColor = '#fbbf24';
+                  outerFill = 'rgba(251, 191, 36, 0.35)';
+                  strokeWidth = 2.5;
+                  outerRadius += 2;
                 } else if (highlight === 'dependent') {
-                  fill = 'rgba(16, 185, 129, 0.2)';
-                  border = 'var(--color-success)';
-                  size += 2;
+                  coreColor = '#4ade80';
+                  strokeColor = '#4ade80';
+                  outerFill = 'rgba(74, 222, 128, 0.35)';
+                  strokeWidth = 2.5;
+                  outerRadius += 2;
                 } else if (highlight === 'related') {
-                  fill = 'rgba(6, 182, 212, 0.2)';
-                  border = 'var(--color-accent)';
+                  coreColor = '#818cf8';
+                  strokeColor = '#818cf8';
+                  outerFill = 'rgba(129, 140, 248, 0.35)';
+                  strokeWidth = 2;
                 } else if (highlight === 'dimmed') {
-                  border = 'rgba(255,255,255,0.02)';
-                  textColor = 'var(--text-muted)';
+                  opacity = 0.28;
+                  textColor = 'var(--color-fog)';
                 }
 
                 return (
@@ -266,26 +314,34 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                     onClick={() => setSelectedConcept(selectedConcept?.id === node.id ? null : node)}
                     onMouseEnter={() => setHoveredConcept(node)}
                     onMouseLeave={() => setHoveredConcept(null)}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', opacity, transition: 'var(--transition-smooth)' }}
                   >
+                    {/* Outer translucent halo ring */}
                     <circle
-                      r={size}
-                      fill={fill}
-                      stroke={border}
-                      strokeWidth="2"
-                      style={{ transition: 'var(--transition-smooth)' }}
+                      r={outerRadius}
+                      fill={outerFill}
+                      stroke={strokeColor}
+                      strokeWidth={strokeWidth}
                     />
+                    
+                    {/* Inner solid glowing point - 100% visible on dark background */}
+                    <circle
+                      r={innerRadius}
+                      fill={coreColor}
+                    />
+
+                    {/* Node text label with high contrast and readable shadow */}
                     <text
-                      x={size + 6}
+                      x={outerRadius + 8}
                       y="4"
                       fill={textColor}
                       style={{
-                        fontSize: '0.75rem',
+                        fontSize: '0.78rem',
                         fontWeight: textWeight,
                         pointerEvents: 'none',
                         fontFamily: 'var(--font-sans)',
-                        transition: 'var(--transition-smooth)',
-                        textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                        letterSpacing: '-0.010em',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.8)'
                       }}
                     >
                       {node.name}

@@ -313,8 +313,8 @@ export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashc
                   border = isActive ? 'var(--color-iris-violet)' : 'var(--color-graphite)';
                   textWeight = '510';
                 } else if (node.type === 'topic') {
-                  fill = isActive ? 'rgba(255, 255, 255, 0.08)' : 'var(--color-obsidian)';
-                  border = isActive ? 'var(--color-mist)' : 'var(--color-graphite)';
+                  fill = isActive ? 'var(--color-acid-lime)' : '#38bdf8';
+                  border = isActive ? '#ffffff' : 'rgba(56, 189, 248, 0.5)';
                 }
 
                 return (
@@ -358,13 +358,20 @@ export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashc
                     )}
 
                     {node.type === 'topic' && (
-                      <circle
-                        r={isActive ? "8" : "6"}
-                        fill={fill}
-                        stroke={border}
-                        strokeWidth={isActive ? "2.5" : "1.5"}
-                        style={{ transition: 'var(--transition-fast)' }}
-                      />
+                      <>
+                        <circle
+                          r={isActive ? "10" : "7"}
+                          fill={isActive ? 'rgba(228, 242, 34, 0.3)' : 'rgba(56, 189, 248, 0.25)'}
+                          stroke={isActive ? 'var(--color-acid-lime)' : '#38bdf8'}
+                          strokeWidth={isActive ? "2.5" : "1.5"}
+                          style={{ transition: 'var(--transition-fast)' }}
+                        />
+                        <circle
+                          r={isActive ? "5" : "3.5"}
+                          fill={isActive ? 'var(--color-acid-lime)' : '#38bdf8'}
+                          style={{ transition: 'var(--transition-fast)' }}
+                        />
+                      </>
                     )}
 
                     <text
