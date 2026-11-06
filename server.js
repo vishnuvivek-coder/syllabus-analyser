@@ -1675,8 +1675,36 @@ app.post('/api/faculty-copilot/parse-document', upload.single('docFile'), async 
     } else if (mime.startsWith('text/') || mime === 'application/json' || req.file.originalname.endsWith('.csv')) {
       extractedText = req.file.buffer.toString('utf-8');
     } else if (mime.startsWith('image/')) {
-      // For images, we will pass base64 to Gemini to summarize
-      extractedText = '[Image document: contains visual timetable or regulation diagram]';
+      // High-Resolution Multimodal OCR for Timetable and Regulation Photos
+      try {
+        const imagePart = {
+          inlineData: {
+            data: req.file.buffer.toString('base64'),
+            mimeType: mime
+          }
+        };
+
+        const ocrPrompt = docType === 'regulation'
+          ? 'Accurately transcribe all text, assessment schemes, marks distributions, and academic rules from this regulation image document.'
+          : 'Accurately transcribe the weekly teaching timetable, days, periods, time slots, course names, and batch allocations from this timetable photo into clear text format.';
+
+        const ocrContents = [{
+          role: 'user',
+          parts: [imagePart, { text: ocrPrompt }]
+        }];
+
+        const ocrResult = await generateWithFallback(
+          clientApiKey,
+          modelName,
+          ocrContents,
+          'You are an expert high-precision document OCR and academic schedule transcription engine.',
+          { responseMimeType: null, temperature: 0.1, maxOutputTokens: 4096 }
+        );
+        extractedText = ocrResult.response.text();
+      } catch (ocrErr) {
+        console.warn('Multimodal OCR failed for photo, falling back to document notice:', ocrErr.message);
+        extractedText = `[Uploaded photo: ${req.file.originalname} (${(req.file.size / 1024).toFixed(1)} KB)]`;
+      }
     } else {
       extractedText = req.file.buffer.toString('utf-8');
     }
