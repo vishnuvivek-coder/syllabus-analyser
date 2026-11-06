@@ -74,10 +74,10 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
   const getRelationshipColor = (type) => {
     switch (type) {
       case 'PREREQUISITE': return '#fbbf24';   // Vibrant Amber
-      case 'DEPENDS_ON': return '#e4f222';     // Electric Acid Lime
-      case 'RELATED_TO': return '#818cf8';     // Bright Iris Violet
-      case 'CONTRASTS_WITH': return '#f87171'; // Coral Red
-      case 'EXTENDS': return '#22d3ee';        // Signal Teal
+      case 'DEPENDS_ON': return '#38bdf8';     // Electric Sky Blue
+      case 'RELATED_TO': return '#a855f7';     // Bright Neon Violet
+      case 'CONTRASTS_WITH': return '#f43f5e'; // Bright Coral Red
+      case 'EXTENDS': return '#00f5d4';        // Electric Teal
       case 'APPLIES_TO': return '#4ade80';     // Pulse Green
       default: return '#94a3b8';
     }
@@ -160,10 +160,10 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#e4f222', boxShadow: '0 0 6px #e4f222' }} /> Advanced
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-paper)' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#818cf8', boxShadow: '0 0 6px #818cf8' }} /> Intermediate
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#a855f7', boxShadow: '0 0 6px #a855f7' }} /> Intermediate
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-paper)' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#02b8cc', boxShadow: '0 0 6px #02b8cc' }} /> Foundational
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00f5d4', boxShadow: '0 0 6px #00f5d4' }} /> Foundational
               </span>
             </div>
 
@@ -214,6 +214,15 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
             height="100%" 
             style={{ position: 'absolute', top: 0, left: 0 }}
           >
+            <defs>
+              <pattern id="concept-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.2" fill="rgba(255, 255, 255, 0.08)" />
+              </pattern>
+            </defs>
+
+            {/* Subtle Matrix Dot Grid Background */}
+            <rect width="100%" height="100%" fill="url(#concept-grid)" pointerEvents="none" />
+
             {/* Transform Group */}
             <g transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}>
               
@@ -234,78 +243,101 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                     x2={tgtNode.x}
                     y2={tgtNode.y}
                     stroke={color}
-                    strokeWidth={isLinkActive ? 2.8 : 1.6}
-                    strokeDasharray={rel.type === 'CONTRASTS_WITH' ? '5,4' : 'none'}
+                    strokeWidth={isLinkActive ? 3.2 : 2.0}
+                    strokeDasharray={rel.type === 'CONTRASTS_WITH' ? '6,4' : 'none'}
                     style={{
-                      opacity: isLinkActive ? 1 : (selectedConcept ? 0.12 : 0.65),
+                      opacity: isLinkActive ? 1 : (selectedConcept ? 0.35 : 0.75),
                       transition: 'var(--transition-smooth)'
                     }}
                   />
                 );
               })}
 
-              {/* Draw Highly Visible Concept Node Points */}
-              {conceptNodes.map((node) => {
+              {/* Draw Highly Visible, Luminous Concept Node Points */}
+              {conceptNodes.map((node, idx) => {
                 const highlight = getHighlightState(node.id);
                 
-                // Determine vibrant category point color
-                let categoryColor = '#38bdf8'; // Electric Sky Blue default
-                let outerRadius = 13;
-                let innerRadius = 5;
+                // Determine rich, high-contrast, vibrant point color
+                const VIBRANT_PALETTE = [
+                  '#00f5d4', // Electric Cyan
+                  '#e4f222', // Acid Lime
+                  '#a855f7', // Neon Violet
+                  '#38bdf8', // Bright Sky Blue
+                  '#fbbf24', // Luminous Amber
+                  '#f43f5e', // Hot Coral Pink
+                  '#34d399', // Mint Emerald
+                  '#f472b6', // Neon Magenta
+                  '#60a5fa', // Radiant Blue
+                  '#fb923c', // Sunset Orange
+                ];
 
-                const catLower = (node.category || '').toLowerCase();
-                if (catLower.includes('foundation') || catLower.includes('basic')) {
-                  categoryColor = '#02b8cc'; // Signal Teal
-                  outerRadius = 12;
-                  innerRadius = 4.5;
-                } else if (catLower.includes('intermediate') || catLower.includes('core')) {
-                  categoryColor = '#818cf8'; // Bright Iris Violet
-                  outerRadius = 14;
-                  innerRadius = 5.5;
-                } else if (catLower.includes('advanced') || catLower.includes('applied') || catLower.includes('complex')) {
-                  categoryColor = '#e4f222'; // Electric Acid Lime
-                  outerRadius = 16;
-                  innerRadius = 6.5;
+                const cat = (node.category || '').toLowerCase();
+                const name = (node.name || '').toLowerCase();
+                let categoryColor = VIBRANT_PALETTE[idx % VIBRANT_PALETTE.length];
+
+                if (cat.includes('adv') || cat.includes('complex') || name.includes('ensemble') || name.includes('boost')) {
+                  categoryColor = '#e4f222'; // Acid Lime
+                } else if (cat.includes('inter') || cat.includes('core') || name.includes('vector') || name.includes('discriminant')) {
+                  categoryColor = '#a855f7'; // Neon Violet
+                } else if (cat.includes('found') || cat.includes('basic') || cat.includes('intro') || name.includes('tradeoff')) {
+                  categoryColor = '#00f5d4'; // Electric Cyan
+                } else if (cat.includes('cluster') || name.includes('cluster') || name.includes('kmeans') || name.includes('dbscan')) {
+                  categoryColor = '#34d399'; // Mint Emerald
+                } else if (cat.includes('bayes') || name.includes('bayes') || cat.includes('prob')) {
+                  categoryColor = '#fbbf24'; // Luminous Amber
+                } else if (name.includes('tree')) {
+                  categoryColor = '#38bdf8'; // Bright Sky
+                } else if (name.includes('regress') || name.includes('lasso') || name.includes('ridge')) {
+                  categoryColor = '#fb923c'; // Sunset Orange
+                } else if (name.includes('pca') || name.includes('component')) {
+                  categoryColor = '#f472b6'; // Neon Magenta
                 }
 
-                let outerFill = `${categoryColor}28`; // 16% opacity translucent halo
+                let outerRadius = 15;
+                let innerRadius = 8;
+                let outerFill = `${categoryColor}33`; // 20% opacity translucent halo
                 let strokeColor = categoryColor;
-                let strokeWidth = 2;
+                let strokeWidth = 2.2;
                 let coreColor = categoryColor; // Solid luminous inner center
                 let textColor = '#ffffff';
-                let textWeight = '510';
+                let textWeight = '600';
                 let opacity = 1;
 
                 // Highlight states when user clicks/focuses a node
                 if (highlight === 'active') {
-                  outerFill = `${categoryColor}45`;
+                  outerFill = `${categoryColor}55`;
                   strokeColor = '#ffffff';
-                  strokeWidth = 3;
-                  outerRadius += 4;
-                  innerRadius += 2;
+                  strokeWidth = 3.5;
+                  outerRadius = 20;
+                  innerRadius = 10;
                   textColor = '#ffffff';
-                  textWeight = '600';
+                  textWeight = '700';
                 } else if (highlight === 'prereq') {
                   coreColor = '#fbbf24';
                   strokeColor = '#fbbf24';
-                  outerFill = 'rgba(251, 191, 36, 0.35)';
-                  strokeWidth = 2.5;
-                  outerRadius += 2;
+                  outerFill = 'rgba(251, 191, 36, 0.45)';
+                  strokeWidth = 3;
+                  outerRadius = 18;
+                  innerRadius = 9;
                 } else if (highlight === 'dependent') {
                   coreColor = '#4ade80';
                   strokeColor = '#4ade80';
-                  outerFill = 'rgba(74, 222, 128, 0.35)';
-                  strokeWidth = 2.5;
-                  outerRadius += 2;
+                  outerFill = 'rgba(74, 222, 128, 0.45)';
+                  strokeWidth = 3;
+                  outerRadius = 18;
+                  innerRadius = 9;
                 } else if (highlight === 'related') {
-                  coreColor = '#818cf8';
-                  strokeColor = '#818cf8';
-                  outerFill = 'rgba(129, 140, 248, 0.35)';
-                  strokeWidth = 2;
+                  coreColor = '#a855f7';
+                  strokeColor = '#a855f7';
+                  outerFill = 'rgba(168, 85, 247, 0.45)';
+                  strokeWidth = 2.5;
+                  outerRadius = 17;
                 } else if (highlight === 'dimmed') {
-                  opacity = 0.28;
-                  textColor = 'var(--color-fog)';
+                  opacity = 0.55; // Keep visibly legible, do not fade out to invisibility
+                  textColor = 'var(--color-mist)';
                 }
+
+                const labelWidth = Math.max(node.name.length * 7.2 + 14, 60);
 
                 return (
                   <g
@@ -316,7 +348,7 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                     onMouseLeave={() => setHoveredConcept(null)}
                     style={{ cursor: 'pointer', opacity, transition: 'var(--transition-smooth)' }}
                   >
-                    {/* Outer translucent halo ring */}
+                    {/* Outer translucent halo ring with luminous glow */}
                     <circle
                       r={outerRadius}
                       fill={outerFill}
@@ -324,24 +356,42 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                       strokeWidth={strokeWidth}
                     />
                     
-                    {/* Inner solid glowing point - 100% visible on dark background */}
+                    {/* Inner SOLID glowing colored point - 100% visible on pitch black background */}
                     <circle
                       r={innerRadius}
                       fill={coreColor}
                     />
 
-                    {/* Node text label with high contrast and readable shadow */}
+                    {/* Specular center dot for high-tech radar beacon aesthetic */}
+                    <circle
+                      r={innerRadius > 8 ? 3.5 : 2.5}
+                      fill="#ffffff"
+                    />
+
+                    {/* High-Contrast Label Badge Background */}
+                    <rect
+                      x={outerRadius + 6}
+                      y="-12"
+                      width={labelWidth}
+                      height="22"
+                      rx="5"
+                      fill="rgba(15, 16, 17, 0.88)"
+                      stroke={strokeColor}
+                      strokeWidth="1"
+                      strokeOpacity="0.4"
+                    />
+
+                    {/* Node text label with high contrast */}
                     <text
-                      x={outerRadius + 8}
-                      y="4"
+                      x={outerRadius + 13}
+                      y="3"
                       fill={textColor}
                       style={{
                         fontSize: '0.78rem',
                         fontWeight: textWeight,
                         pointerEvents: 'none',
                         fontFamily: 'var(--font-sans)',
-                        letterSpacing: '-0.010em',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.8)'
+                        letterSpacing: '-0.010em'
                       }}
                     >
                       {node.name}

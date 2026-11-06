@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import InputPanel from './components/InputPanel';
 import KnowledgeGraph from './components/KnowledgeGraph';
 import ConceptGraph from './components/ConceptGraph';
@@ -14,6 +15,9 @@ import LoginPage, { DEMO_USERS } from './components/LoginPage';
 import { analyzeSyllabus } from './utils/api';
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // Authentication State
   const [user, setUser] = useState(() => {
     try {
@@ -24,8 +28,39 @@ export default function App() {
     }
   });
 
-  const [data, setData] = useState(null);
-  const [activeTab, setActiveTab] = useState('graph');
+  // Persistent Active Curriculum Data
+  const [data, setData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('syllabus_active_data');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  // Synchronize Active Curriculum Data with localStorage
+  useEffect(() => {
+    try {
+      if (data) {
+        localStorage.setItem('syllabus_active_data', JSON.stringify(data));
+      } else {
+        localStorage.removeItem('syllabus_active_data');
+      }
+    } catch (e) {
+      console.error('Failed to sync active syllabus data to localStorage', e);
+    }
+  }, [data]);
+
+  // Route-derived active tab
+  const pathClean = location.pathname.replace(/^\//, '').toLowerCase();
+  const VALID_TABS = [
+    'blueprint', 'variants', 'lab', 'pastpapers', 'graph', 
+    'concepts', 'modules', 'analytics', 'evaluator', 'flashcards', 'upload'
+  ];
+  const activeTab = VALID_TABS.includes(pathClean)
+    ? pathClean
+    : (user?.role === 'faculty' ? 'blueprint' : 'graph');
+
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState(null);
@@ -64,19 +99,27 @@ export default function App() {
   });
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
 
+  // Handle route redirect if user accesses root or login
+  useEffect(() => {
+    if (!user && location.pathname !== '/login') {
+      navigate('/login', { replace: true });
+    } else if (user && (location.pathname === '/login' || location.pathname === '/')) {
+      const target = data ? (user.role === 'faculty' ? '/blueprint' : '/graph') : '/upload';
+      navigate(target, { replace: true });
+    }
+  }, [user, location.pathname, navigate, data]);
+
   const handleLogin = (userObj) => {
     setUser(userObj);
     localStorage.setItem('syllabus_auth_user', JSON.stringify(userObj));
-    if (userObj.role === 'faculty') {
-      setActiveTab('blueprint');
-    } else {
-      setActiveTab('graph');
-    }
+    const target = data ? (userObj.role === 'faculty' ? '/blueprint' : '/graph') : '/upload';
+    navigate(target);
   };
 
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('syllabus_auth_user');
+    navigate('/login');
   };
 
   const handleSwitchRole = () => {
@@ -84,11 +127,8 @@ export default function App() {
     const newUser = DEMO_USERS[newRole];
     setUser(newUser);
     localStorage.setItem('syllabus_auth_user', JSON.stringify(newUser));
-    if (newRole === 'faculty') {
-      setActiveTab('blueprint');
-    } else {
-      setActiveTab('graph');
-    }
+    const nextRoute = newRole === 'faculty' ? '/blueprint' : '/graph';
+    navigate(nextRoute);
   };
 
   const handleAnalyze = async (inputs) => {
@@ -102,7 +142,8 @@ export default function App() {
       
       const parsedData = await analyzeSyllabus(inputs);
       setData(parsedData);
-      setActiveTab('graph');
+      localStorage.setItem('syllabus_active_data', JSON.stringify(parsedData));
+      navigate(user?.role === 'faculty' ? '/blueprint' : '/graph');
       setIsSidebarOpen(false); // Collapsed by default after parse success
 
       // Save to persistent Analysis History
@@ -135,7 +176,8 @@ export default function App() {
 
   const handleLoadHistorySession = (session) => {
     setData(session.parsedData);
-    setActiveTab('graph');
+    localStorage.setItem('syllabus_active_data', JSON.stringify(session.parsedData));
+    navigate(user?.role === 'faculty' ? '/blueprint' : '/graph');
     setIsSidebarOpen(false);
     setShowHistoryDrawer(false);
   };
@@ -158,27 +200,27 @@ export default function App() {
 
   const handleForwardToLab = (topicName) => {
     setInitialLabTopic(topicName);
-    setActiveTab('lab');
+    navigate('/lab');
   };
 
   const handleForwardToFlashcards = (topicName) => {
     setInitialFlashcardTopic(topicName);
-    setActiveTab('flashcards');
+    navigate('/flashcards');
   };
 
   const handleResetAnalysis = () => {
     setData(null);
+    localStorage.removeItem('syllabus_active_data');
     setError(null);
     setInitialLabTopic('');
     setInitialFlashcardTopic('');
-    // Note: Question Bank (savedQuestions) is preserved across syllabus resets
     setIncomingLabQuestion(null);
+    navigate('/upload');
   };
 
   const handleSaveQuestionToBank = (questionObj) => {
     if (!questionObj || !questionObj.question_text) return;
     setSavedQuestions(prev => {
-      // 1. If question with same ID already exists, update in-place
       if (questionObj.id) {
         const idIdx = prev.findIndex(q => q.id === questionObj.id);
         if (idIdx !== -1) {
@@ -187,14 +229,12 @@ export default function App() {
           return updated;
         }
       }
-      // 2. If question with identical text already exists, update in-place
       const textIdx = prev.findIndex(q => q.question_text?.trim() === questionObj.question_text?.trim());
       if (textIdx !== -1) {
         const updated = [...prev];
         updated[textIdx] = { ...updated[textIdx], ...questionObj };
         return updated;
       }
-      // 3. Otherwise add as new question
       return [questionObj, ...prev];
     });
   };
@@ -206,10 +246,10 @@ export default function App() {
   const handleSendQuestionToLab = (questionObj) => {
     handleSaveQuestionToBank(questionObj);
     setIncomingLabQuestion(questionObj);
-    setActiveTab('lab');
+    navigate('/lab');
   };
 
-  if (!user) {
+  if (!user || location.pathname === '/login') {
     return <LoginPage onLogin={handleLogin} />;
   }
 
@@ -260,7 +300,11 @@ export default function App() {
 
           <div style={{ width: '1px', height: '20px', background: 'var(--color-graphite)' }} />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div 
+            onClick={() => navigate(user.role === 'faculty' ? '/blueprint' : '/graph')}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            title="Syllabus Engine Dashboard"
+          >
             <div style={{
               width: '28px',
               height: '28px',
@@ -277,7 +321,7 @@ export default function App() {
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h1 style={{ fontSize: '0.95rem', fontFamily: 'var(--font-sans)', fontWeight: '510', letterSpacing: '-0.015em', color: 'var(--color-paper)', lineHeight: 1.1 }}>
+                <h1 style={{ fontSize: '0.95rem', fontFamily: 'var(--font-sans)', fontWeight: '510', letterSpacing: '-0.015em', color: 'var(--color-paper)', lineHeight: 1.1, margin: 0 }}>
                   Syllabus Engine
                 </h1>
                 <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 6px', color: 'var(--color-mist)', borderColor: 'var(--color-graphite)' }}>
@@ -293,7 +337,7 @@ export default function App() {
 
         {/* Right Side: Active Subject & User Profile Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {data && (
+          {data ? (
             <>
               <div style={{
                 padding: '4px 10px',
@@ -316,13 +360,31 @@ export default function App() {
               </button>
 
               <button 
+                onClick={() => navigate('/upload')} 
+                className={`btn ${activeTab === 'upload' ? 'btn-primary' : 'btn-secondary'}`} 
+                style={{ padding: '5px 10px', fontSize: '0.76rem' }}
+                title="Upload or import new syllabus"
+              >
+                + New / Import
+              </button>
+
+              <button 
                 onClick={handleResetAnalysis} 
                 className="btn btn-secondary" 
                 style={{ padding: '5px 10px', fontSize: '0.76rem', color: 'var(--color-mist)' }}
               >
-                New Analysis
+                Reset
               </button>
             </>
+          ) : (
+            <button 
+              onClick={() => navigate('/upload')} 
+              className={`btn ${activeTab === 'upload' ? 'btn-primary' : 'btn-secondary'}`} 
+              style={{ padding: '5px 10px', fontSize: '0.76rem' }}
+              title="Upload syllabus"
+            >
+              📤 Upload Syllabus
+            </button>
           )}
 
           <div style={{ width: '1px', height: '20px', background: 'var(--color-graphite)' }} />
@@ -502,277 +564,8 @@ export default function App() {
       )}
 
       {/* Main Workspace Container */}
-      {data ? (
-        // Active Dashboard View
-        <div 
-          className="dashboard-grid" 
-          style={{ 
-            flex: '1', 
-            gridTemplateColumns: isSidebarOpen ? '380px 1fr' : '1fr',
-            transition: 'grid-template-columns 0.25s ease'
-          }}
-        >
-          {/* Controls Sidebar */}
-          {isSidebarOpen && (
-            <aside style={{ height: '100%', minHeight: '0' }}>
-              <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} />
-            </aside>
-          )}
-
-          {/* Navigation & Workspace Panels */}
-          <main style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', minHeight: '0' }}>
-            {/* Error Banner */}
-            {error && (
-              <div className="glass-panel" style={{ padding: '12px 18px', borderColor: 'var(--color-danger)', backgroundColor: 'rgba(244, 63, 94, 0.08)', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.85rem' }}>{error}</span>
-                <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
-              </div>
-            )}
-
-
-
-            {/* Navigation Tabs (Tailored per role) - Linear Precision Segmented Control */}
-            <div style={{ 
-              background: 'var(--color-carbon)', 
-              border: '1px solid var(--color-graphite)', 
-              borderRadius: '12px', 
-              padding: '4px', 
-              display: 'flex', 
-              gap: '4px', 
-              flexWrap: 'wrap' 
-            }}>
-              {user.role === 'faculty' ? (
-                <>
-                  <button 
-                    onClick={() => setActiveTab('blueprint')} 
-                    className={`tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Design official exam papers with Bloom taxonomy"
-                  >
-                    📐 Exam Designer
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('variants')} 
-                    className={`tab-btn ${activeTab === 'variants' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Generate multi-set exam questions (Set A, B, C) to prevent cheating"
-                  >
-                    🔀 Question Variants
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('lab')} 
-                    className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Author and curate departmental question repository"
-                  >
-                    🧪 Question Lab
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('pastpapers')} 
-                    className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Audit previous year papers for syllabus coverage gaps"
-                  >
-                    📑 Paper Auditor
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('graph')} 
-                    className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="View syllabus prerequisite architecture"
-                  >
-                    🗺️ Knowledge Map
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('concepts')} 
-                    className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Inspect concept dependency flows"
-                  >
-                    💡 Concepts
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('modules')} 
-                    className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Module structure and learning outcomes"
-                  >
-                    📚 Curriculum
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('analytics')} 
-                    className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Course cognitive depth and Bloom distribution"
-                  >
-                    📊 Analytics
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('evaluator')} 
-                    className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Grade and evaluate student answer submissions"
-                  >
-                    ✍️ Evaluator
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => setActiveTab('graph')} 
-                    className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Interactive roadmap showing what to learn first"
-                  >
-                    🗺️ Learning Map
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('concepts')} 
-                    className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Concept dependencies and prerequisite paths"
-                  >
-                    💡 Concept Flow
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('flashcards')} 
-                    className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Active recall flashcard decks for quick exam revision"
-                  >
-                    🗂️ AI Flashcards
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('evaluator')} 
-                    className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Test your answers and get instant private grading and feedback"
-                  >
-                    ✍️ AI Evaluator
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('lab')} 
-                    className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Practice solving questions by topic"
-                  >
-                    📝 Practice Lab
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('modules')} 
-                    className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Review course modules and key topics"
-                  >
-                    📚 Study Modules
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('pastpapers')} 
-                    className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Explore recurring previous exam questions"
-                  >
-                    🔄 Past Papers
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('analytics')} 
-                    className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Track syllabus coverage and difficulty distribution"
-                  >
-                    📊 Coverage
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
-            <div style={{ flex: '1', minHeight: '0', position: 'relative' }}>
-              <div style={{ display: activeTab === 'graph' ? 'block' : 'none', height: '100%' }}>
-                <KnowledgeGraph 
-                  data={data} 
-                  onForwardToLab={handleForwardToLab} 
-                  onForwardToFlashcards={handleForwardToFlashcards}
-                />
-              </div>
-              <div style={{ display: activeTab === 'concepts' ? 'block' : 'none', height: '100%' }}>
-                <ConceptGraph 
-                  data={data} 
-                  onForwardToLab={handleForwardToLab} 
-                  onForwardToFlashcards={handleForwardToFlashcards}
-                />
-              </div>
-              <div style={{ display: activeTab === 'blueprint' ? 'block' : 'none', height: '100%' }}>
-                <BlueprintDesigner 
-                  syllabusData={data} 
-                  apiKey={localStorage.getItem('gemini_api_key')} 
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
-                  onSendToLab={handleSendQuestionToLab}
-                  onSaveToBank={handleSaveQuestionToBank}
-                />
-              </div>
-              <div style={{ display: activeTab === 'lab' ? 'block' : 'none', height: '100%' }}>
-                <QuestionLab 
-                  syllabusData={data} 
-                  apiKey={localStorage.getItem('gemini_api_key')} 
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
-                  initialTopic={initialLabTopic} 
-                  onClearInitialTopic={() => setInitialLabTopic('')}
-                  incomingQuestion={incomingLabQuestion}
-                  savedQuestions={savedQuestions}
-                  onSaveToBank={handleSaveQuestionToBank}
-                  onRemoveFromBank={handleRemoveQuestionFromBank}
-                />
-              </div>
-              <div style={{ display: activeTab === 'variants' ? 'block' : 'none', height: '100%' }}>
-                <QuestionVariants 
-                  syllabusData={data}
-                  apiKey={localStorage.getItem('gemini_api_key')}
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
-                  savedQuestions={savedQuestions}
-                  onSaveToBank={handleSaveQuestionToBank}
-                />
-              </div>
-              <div style={{ display: activeTab === 'evaluator' ? 'block' : 'none', height: '100%' }}>
-                <AnswerEvaluator 
-                  syllabusData={data}
-                  apiKey={localStorage.getItem('gemini_api_key')}
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
-                  savedQuestions={savedQuestions}
-                />
-              </div>
-              <div style={{ display: activeTab === 'pastpapers' ? 'block' : 'none', height: '100%' }}>
-                <PaperAnalyzer 
-                  syllabusData={data}
-                  apiKey={localStorage.getItem('gemini_api_key')}
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
-                  onForwardToLab={handleForwardToLab}
-                  onForwardToFlashcards={handleForwardToFlashcards}
-                />
-              </div>
-              <div style={{ display: activeTab === 'flashcards' ? 'block' : 'none', height: '100%' }}>
-                <FlashcardDeck 
-                  syllabusData={data} 
-                  apiKey={localStorage.getItem('gemini_api_key')} 
-                  modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
-                  initialTopic={initialFlashcardTopic}
-                  onClearInitialTopic={() => setInitialFlashcardTopic('')}
-                />
-              </div>
-              <div style={{ display: activeTab === 'modules' ? 'block' : 'none', height: '100%' }}>
-                <ModuleList 
-                  data={data} 
-                  onForwardToFlashcards={handleForwardToFlashcards}
-                />
-              </div>
-              <div style={{ display: activeTab === 'analytics' ? 'block' : 'none', height: '100%' }}>
-                <Analytics data={data} />
-              </div>
-            </div>
-          </main>
-        </div>
-      ) : (
-        // Clean Scrollable Centered Upload View (Fixed vertical clipping bug)
+      {activeTab === 'upload' ? (
+        // Dedicated Clean Scrollable Centered Upload View
         <div style={{
           flex: '1',
           minHeight: '0',
@@ -841,6 +634,332 @@ export default function App() {
               </div>
             )}
           </div>
+        </div>
+      ) : (
+        // Active Dashboard View
+        <div 
+          className="dashboard-grid" 
+          style={{ 
+            flex: '1', 
+            gridTemplateColumns: (isSidebarOpen && data) ? '380px 1fr' : '1fr',
+            transition: 'grid-template-columns 0.25s ease'
+          }}
+        >
+          {/* Controls Sidebar */}
+          {isSidebarOpen && data && (
+            <aside style={{ height: '100%', minHeight: '0' }}>
+              <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} />
+            </aside>
+          )}
+
+          {/* Navigation & Workspace Panels */}
+          <main style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', minHeight: '0' }}>
+            {/* Error Banner */}
+            {error && (
+              <div className="glass-panel" style={{ padding: '12px 18px', borderColor: 'var(--color-danger)', backgroundColor: 'rgba(244, 63, 94, 0.08)', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem' }}>{error}</span>
+                <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+              </div>
+            )}
+
+            {/* Navigation Tabs (Tailored per role) - Linear Precision Segmented Control with Dedicated URLs */}
+            <div style={{ 
+              background: 'var(--color-carbon)', 
+              border: '1px solid var(--color-graphite)', 
+              borderRadius: '12px', 
+              padding: '4px', 
+              display: 'flex', 
+              gap: '4px', 
+              flexWrap: 'wrap' 
+            }}>
+              {user.role === 'faculty' ? (
+                <>
+                  <button 
+                    onClick={() => navigate('/blueprint')} 
+                    className={`tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Design official exam papers with Bloom taxonomy (/blueprint)"
+                  >
+                    📐 Exam Designer
+                  </button>
+                  <button 
+                    onClick={() => navigate('/variants')} 
+                    className={`tab-btn ${activeTab === 'variants' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Generate multi-set exam questions (Set A, B, C) to prevent cheating (/variants)"
+                  >
+                    🔀 Question Variants
+                  </button>
+                  <button 
+                    onClick={() => navigate('/lab')} 
+                    className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Author and curate departmental question repository (/lab)"
+                  >
+                    🧪 Question Lab
+                  </button>
+                  <button 
+                    onClick={() => navigate('/pastpapers')} 
+                    className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Audit previous year papers for syllabus coverage gaps (/pastpapers)"
+                  >
+                    📑 Paper Auditor
+                  </button>
+                  <button 
+                    onClick={() => navigate('/graph')} 
+                    className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="View syllabus prerequisite architecture (/graph)"
+                  >
+                    🗺️ Knowledge Map
+                  </button>
+                  <button 
+                    onClick={() => navigate('/concepts')} 
+                    className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Inspect concept dependency flows (/concepts)"
+                  >
+                    💡 Concepts
+                  </button>
+                  <button 
+                    onClick={() => navigate('/modules')} 
+                    className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Module structure and learning outcomes (/modules)"
+                  >
+                    📚 Curriculum
+                  </button>
+                  <button 
+                    onClick={() => navigate('/analytics')} 
+                    className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Course cognitive depth and Bloom distribution (/analytics)"
+                  >
+                    📊 Analytics
+                  </button>
+                  <button 
+                    onClick={() => navigate('/evaluator')} 
+                    className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Grade and evaluate student answer submissions (/evaluator)"
+                  >
+                    ✍️ Evaluator
+                  </button>
+                  <button 
+                    onClick={() => navigate('/upload')} 
+                    className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px', color: 'var(--color-acid-lime)' }}
+                    title="Upload or import new syllabus materials (/upload)"
+                  >
+                    📤 Upload
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => navigate('/graph')} 
+                    className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Interactive roadmap showing what to learn first (/graph)"
+                  >
+                    🗺️ Learning Map
+                  </button>
+                  <button 
+                    onClick={() => navigate('/concepts')} 
+                    className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Concept dependencies and prerequisite paths (/concepts)"
+                  >
+                    💡 Concept Flow
+                  </button>
+                  <button 
+                    onClick={() => navigate('/flashcards')} 
+                    className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Active recall flashcard decks for quick exam revision (/flashcards)"
+                  >
+                    🗂️ AI Flashcards
+                  </button>
+                  <button 
+                    onClick={() => navigate('/evaluator')} 
+                    className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Test your answers and get instant private grading and feedback (/evaluator)"
+                  >
+                    ✍️ AI Evaluator
+                  </button>
+                  <button 
+                    onClick={() => navigate('/lab')} 
+                    className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Practice solving questions by topic (/lab)"
+                  >
+                    📝 Practice Lab
+                  </button>
+                  <button 
+                    onClick={() => navigate('/modules')} 
+                    className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Review course modules and key topics (/modules)"
+                  >
+                    📚 Study Modules
+                  </button>
+                  <button 
+                    onClick={() => navigate('/pastpapers')} 
+                    className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Explore recurring previous exam questions (/pastpapers)"
+                  >
+                    🔄 Past Papers
+                  </button>
+                  <button 
+                    onClick={() => navigate('/analytics')} 
+                    className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px' }}
+                    title="Track syllabus coverage and difficulty distribution (/analytics)"
+                  >
+                    📊 Coverage
+                  </button>
+                  <button 
+                    onClick={() => navigate('/upload')} 
+                    className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px', color: 'var(--color-acid-lime)' }}
+                    title="Upload or import new syllabus materials (/upload)"
+                  >
+                    📤 Upload
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
+            <div style={{ flex: '1', minHeight: '0', position: 'relative' }}>
+              
+              {/* Fallback prompt for tabs requiring syllabus data when no syllabus has been parsed yet */}
+              {!data && !['lab', 'evaluator'].includes(activeTab) ? (
+                <div className="glass-panel" style={{ 
+                  padding: '60px 24px', 
+                  textAlign: 'center', 
+                  maxWidth: '560px', 
+                  margin: '40px auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{ fontSize: '2.5rem' }}>📄</div>
+                  <h3 style={{ fontSize: '1.25rem', color: 'var(--color-paper)', fontWeight: '510', margin: 0 }}>
+                    No Syllabus Loaded Yet
+                  </h3>
+                  <p style={{ color: 'var(--color-fog)', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>
+                    Please upload an academic syllabus or select a previously analyzed course from History in the top-left to unlock this page.
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                    <button 
+                      onClick={() => navigate('/upload')} 
+                      className="btn btn-primary"
+                      style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+                    >
+                      📤 Upload Syllabus
+                    </button>
+                    {historySessions.length > 0 && (
+                      <button 
+                        onClick={() => setShowHistoryDrawer(true)} 
+                        className="btn btn-secondary"
+                        style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+                      >
+                        Browse History ({historySessions.length})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: activeTab === 'graph' ? 'block' : 'none', height: '100%' }}>
+                    <KnowledgeGraph 
+                      data={data} 
+                      onForwardToLab={handleForwardToLab} 
+                      onForwardToFlashcards={handleForwardToFlashcards}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'concepts' ? 'block' : 'none', height: '100%' }}>
+                    <ConceptGraph 
+                      data={data} 
+                      onForwardToLab={handleForwardToLab} 
+                      onForwardToFlashcards={handleForwardToFlashcards}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'blueprint' ? 'block' : 'none', height: '100%' }}>
+                    <BlueprintDesigner 
+                      syllabusData={data} 
+                      apiKey={localStorage.getItem('gemini_api_key')} 
+                      modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
+                      onSendToLab={handleSendQuestionToLab}
+                      onSaveToBank={handleSaveQuestionToBank}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'lab' ? 'block' : 'none', height: '100%' }}>
+                    <QuestionLab 
+                      syllabusData={data} 
+                      apiKey={localStorage.getItem('gemini_api_key')} 
+                      modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
+                      initialTopic={initialLabTopic} 
+                      onClearInitialTopic={() => setInitialLabTopic('')}
+                      incomingQuestion={incomingLabQuestion}
+                      savedQuestions={savedQuestions}
+                      onSaveToBank={handleSaveQuestionToBank}
+                      onRemoveFromBank={handleRemoveQuestionFromBank}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'variants' ? 'block' : 'none', height: '100%' }}>
+                    <QuestionVariants 
+                      syllabusData={data}
+                      apiKey={localStorage.getItem('gemini_api_key')}
+                      modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
+                      savedQuestions={savedQuestions}
+                      onSaveToBank={handleSaveQuestionToBank}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'evaluator' ? 'block' : 'none', height: '100%' }}>
+                    <AnswerEvaluator 
+                      syllabusData={data}
+                      apiKey={localStorage.getItem('gemini_api_key')}
+                      modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
+                      savedQuestions={savedQuestions}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'pastpapers' ? 'block' : 'none', height: '100%' }}>
+                    <PaperAnalyzer 
+                      syllabusData={data}
+                      apiKey={localStorage.getItem('gemini_api_key')}
+                      modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
+                      onForwardToLab={handleForwardToLab}
+                      onForwardToFlashcards={handleForwardToFlashcards}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'flashcards' ? 'block' : 'none', height: '100%' }}>
+                    <FlashcardDeck 
+                      syllabusData={data} 
+                      apiKey={localStorage.getItem('gemini_api_key')} 
+                      modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'} 
+                      initialTopic={initialFlashcardTopic}
+                      onClearInitialTopic={() => setInitialFlashcardTopic('')}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'modules' ? 'block' : 'none', height: '100%' }}>
+                    <ModuleList 
+                      data={data} 
+                      onForwardToFlashcards={handleForwardToFlashcards}
+                    />
+                  </div>
+                  <div style={{ display: activeTab === 'analytics' ? 'block' : 'none', height: '100%' }}>
+                    <Analytics data={data} />
+                  </div>
+                </>
+              )}
+            </div>
+          </main>
         </div>
       )}
 

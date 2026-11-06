@@ -254,7 +254,13 @@ export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashc
               <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--color-warning)" />
               </marker>
+              <pattern id="knowledge-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="1.2" fill="rgba(255, 255, 255, 0.08)" />
+              </pattern>
             </defs>
+
+            {/* Matrix Dot Grid Background */}
+            <rect width="100%" height="100%" fill="url(#knowledge-grid)" pointerEvents="none" />
 
             {/* Transform Group */}
             <g transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}>
