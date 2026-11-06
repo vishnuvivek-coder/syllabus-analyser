@@ -4,11 +4,14 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
   const [selectedConcept, setSelectedConcept] = useState(null);
   const [hoveredConcept, setHoveredConcept] = useState(null);
 
-  // Zoom and Pan States
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  // Zoom, Pan, and Node Dragging States
+  const [scale, setScale] = useState(0.92);
+  const [translate, setTranslate] = useState({ x: 20, y: 10 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [customPositions, setCustomPositions] = useState({});
+  const [draggedNode, setDraggedNode] = useState(null);
+  const [nodeDragOffset, setNodeDragOffset] = useState({ x: 0, y: 0 });
 
   const graph = useMemo(() => {
     if (!data || !data.concept_dependency_graph) return null;
@@ -18,24 +21,111 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
   const conceptNodes = useMemo(() => {
     if (!graph || !graph.concepts) return [];
 
-    const nodes = [];
     const count = graph.concepts.length;
-    const centerX = 350;
-    const centerY = 280;
-    const radius = 200;
+    const centerX = 530;
+    const centerY = 340;
+    const radiusX = Math.max(270, Math.min(320, count * 26));
+    const radiusY = Math.max(210, Math.min(240, count * 19));
 
-    graph.concepts.forEach((concept, i) => {
-      // Position nodes in a clean radial circle layout
-      const angle = (i * 2 * Math.PI) / count;
-      nodes.push({
+    const nodes = graph.concepts.map((concept, i) => {
+      // Clockwise angle starting from top (-PI/2)
+      const angle = (i * 2 * Math.PI) / count - Math.PI / 2;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+
+      const custom = customPositions[concept.id];
+      const x = custom ? custom.x : centerX + radiusX * cos;
+      const y = custom ? custom.y : centerY + radiusY * sin;
+
+      const labelWidth = Math.max(concept.name.length * 7.2 + 16, 68);
+      const labelHeight = 24;
+
+      // Smart Outward Label Placement (Zero collision layout):
+      // Left side -> label points left
+      // Right side -> label points right
+      // Top apex -> label centered above
+      // Bottom apex -> label centered below
+      let placement = 'right';
+      let relLabelX = 22;
+      let relLabelY = -11;
+      let relTextX = 30;
+      let relTextY = 4;
+
+      if (sin < -0.80) {
+        placement = 'top';
+        relLabelX = -labelWidth / 2;
+        relLabelY = -40;
+        relTextX = -labelWidth / 2 + 8;
+        relTextY = -25;
+      } else if (sin > 0.80) {
+        placement = 'bottom';
+        relLabelX = -labelWidth / 2;
+        relLabelY = 20;
+        relTextX = -labelWidth / 2 + 8;
+        relTextY = 35;
+      } else if (cos < 0) {
+        placement = 'left';
+        relLabelX = -(22 + labelWidth);
+        relLabelY = -11;
+        relTextX = -(22 + labelWidth - 8);
+        relTextY = 4;
+      } else {
+        placement = 'right';
+        relLabelX = 22;
+        relLabelY = -11;
+        relTextX = 30;
+        relTextY = 4;
+      }
+
+      return {
         ...concept,
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
-      });
+        x,
+        y,
+        angle,
+        cos,
+        sin,
+        placement,
+        labelWidth,
+        labelHeight,
+        relLabelX,
+        relLabelY,
+        relTextX,
+        relTextY,
+        labelOffsetX: 0,
+        labelOffsetY: 0
+      };
     });
 
+    // Iterative collision prevention relaxation pass for vertical label clearance
+    for (let iter = 0; iter < 12; iter++) {
+      let moved = false;
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i];
+          const b = nodes[j];
+
+          const ax = a.x + a.relLabelX + a.labelOffsetX;
+          const ay = a.y + a.relLabelY + a.labelOffsetY;
+          const bx = b.x + b.relLabelX + b.labelOffsetX;
+          const by = b.y + b.relLabelY + b.labelOffsetY;
+
+          const xOverlap = ax < bx + b.labelWidth + 6 && ax + a.labelWidth + 6 > bx;
+          const yOverlap = ay < by + b.labelHeight + 6 && ay + a.labelHeight + 6 > by;
+
+          if (xOverlap && yOverlap) {
+            const dy = (by - ay) || (j > i ? 1 : -1);
+            const push = 10 * Math.sign(dy);
+            a.labelOffsetY -= push;
+            b.labelOffsetY += push;
+            moved = true;
+          }
+        }
+      }
+      if (!moved) break;
+    }
+
     return nodes;
-  }, [graph]);
+  }, [graph, customPositions]);
 
   const conceptMap = useMemo(() => {
     const map = {};
@@ -98,6 +188,15 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
   };
 
   const handleMouseMove = (e) => {
+    if (draggedNode) {
+      const newX = (e.clientX - translate.x) / scale - nodeDragOffset.x;
+      const newY = (e.clientY - translate.y) / scale - nodeDragOffset.y;
+      setCustomPositions(prev => ({
+        ...prev,
+        [draggedNode]: { x: newX, y: newY }
+      }));
+      return;
+    }
     if (!isDragging) return;
     setTranslate({
       x: e.clientX - dragStart.x,
@@ -107,13 +206,15 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setDraggedNode(null);
   };
 
   const zoomIn = () => setScale(s => Math.min(s * 1.15, 3));
   const zoomOut = () => setScale(s => Math.max(s / 1.15, 0.3));
   const resetZoom = () => {
-    setScale(1);
-    setTranslate({ x: 0, y: 0 });
+    setScale(0.92);
+    setTranslate({ x: 20, y: 10 });
+    setCustomPositions({});
   };
 
   return (
@@ -337,16 +438,32 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                   textColor = 'var(--color-mist)';
                 }
 
-                const labelWidth = Math.max(node.name.length * 7.2 + 14, 60);
+                const lx = node.relLabelX + node.labelOffsetX;
+                const ly = node.relLabelY + node.labelOffsetY;
+                const tx = node.relTextX + node.labelOffsetX;
+                const ty = node.relTextY + node.labelOffsetY;
 
                 return (
                   <g
                     key={node.id}
                     transform={`translate(${node.x}, ${node.y})`}
+                    onMouseDown={(e) => {
+                      if (e.button !== 0) return;
+                      e.stopPropagation();
+                      setDraggedNode(node.id);
+                      setNodeDragOffset({
+                        x: (e.clientX - translate.x) / scale - node.x,
+                        y: (e.clientY - translate.y) / scale - node.y
+                      });
+                    }}
                     onClick={() => setSelectedConcept(selectedConcept?.id === node.id ? null : node)}
                     onMouseEnter={() => setHoveredConcept(node)}
                     onMouseLeave={() => setHoveredConcept(null)}
-                    style={{ cursor: 'pointer', opacity, transition: 'var(--transition-smooth)' }}
+                    style={{ 
+                      cursor: draggedNode === node.id ? 'grabbing' : 'grab', 
+                      opacity, 
+                      transition: draggedNode === node.id ? 'none' : 'var(--transition-smooth)' 
+                    }}
                   >
                     {/* Outer translucent halo ring with luminous glow */}
                     <circle
@@ -368,23 +485,23 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
                       fill="#ffffff"
                     />
 
-                    {/* High-Contrast Label Badge Background */}
+                    {/* Non-overlapping High-Contrast Label Badge Background */}
                     <rect
-                      x={outerRadius + 6}
-                      y="-12"
-                      width={labelWidth}
+                      x={lx}
+                      y={ly}
+                      width={node.labelWidth}
                       height="22"
                       rx="5"
-                      fill="rgba(15, 16, 17, 0.88)"
+                      fill="rgba(15, 16, 17, 0.90)"
                       stroke={strokeColor}
-                      strokeWidth="1"
-                      strokeOpacity="0.4"
+                      strokeWidth="1.2"
+                      strokeOpacity="0.5"
                     />
 
-                    {/* Node text label with high contrast */}
+                    {/* Node text label with guaranteed clearance */}
                     <text
-                      x={outerRadius + 13}
-                      y="3"
+                      x={tx}
+                      y={ty}
                       fill={textColor}
                       style={{
                         fontSize: '0.78rem',
