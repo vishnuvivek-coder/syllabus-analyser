@@ -142,13 +142,18 @@ async function generateWithFallback(apiKey, requestedModel, contents, systemInst
     try {
       console.log(`[Gemini Call] Requesting via model "${modelName}"...`);
       const ai = new GoogleGenerativeAI(geminiKey);
+      const generationConfig = {
+        temperature: options.temperature !== undefined ? options.temperature : 0.1,
+        maxOutputTokens: options.maxOutputTokens || 8192
+      };
+      // Only enforce application/json if responseMimeType is not explicitly set to null
+      if (options.responseMimeType !== null) {
+        generationConfig.responseMimeType = options.responseMimeType || 'application/json';
+      }
+
       const model = ai.getGenerativeModel({
         model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: options.temperature !== undefined ? options.temperature : 0.1,
-          maxOutputTokens: options.maxOutputTokens || 8192
-        }
+        generationConfig
       });
       const result = await model.generateContent({
         contents,
@@ -1638,6 +1643,242 @@ ${typeof syllabusContext === 'object' ? JSON.stringify(syllabusContext, null, 2)
   } catch (error) {
     console.error('Error analyzing paper:', error);
     res.status(500).json({ error: 'Failed to analyze previous year paper. ' + error.message });
+  }
+});
+
+
+// ============================================================================
+// Faculty Academic Copilot & Regulations Advisor Endpoints
+// ============================================================================
+
+// Parse uploaded regulation document or institutional timetable
+app.post('/api/faculty-copilot/parse-document', upload.single('docFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No document file uploaded.' });
+    }
+
+    const docType = req.body.docType || 'regulation'; // 'regulation' | 'timetable'
+    const clientApiKey = req.headers['x-api-key'];
+    const modelName = req.body.modelName || process.env.DEFAULT_MODEL || 'gemini-2.5-flash';
+    let extractedText = '';
+
+    const mime = req.file.mimetype;
+    if (mime === 'application/pdf') {
+      try {
+        const pdfData = await pdfParse(req.file.buffer);
+        extractedText = pdfData.text || '';
+      } catch (pdfErr) {
+        console.error('PDF parsing error for copilot document:', pdfErr);
+        return res.status(400).json({ error: 'Failed to extract text from the uploaded PDF document.' });
+      }
+    } else if (mime.startsWith('text/') || mime === 'application/json' || req.file.originalname.endsWith('.csv')) {
+      extractedText = req.file.buffer.toString('utf-8');
+    } else if (mime.startsWith('image/')) {
+      // For images, we will pass base64 to Gemini to summarize
+      extractedText = '[Image document: contains visual timetable or regulation diagram]';
+    } else {
+      extractedText = req.file.buffer.toString('utf-8');
+    }
+
+    extractedText = cleanSyllabusText(extractedText);
+
+    // Generate a quick concise summary of the document for institutional context
+    let summary = '';
+    try {
+      const summaryPrompt = docType === 'regulation'
+        ? `Analyze this academic regulation document and summarize in 3-5 bullet points: 
+           1. Regulation code/name (e.g. R24, R23, Autonomous)
+           2. Internal assessment breakdown (FAs, Mids, Attendance)
+           3. Semester End Exam (SEE) marks and total marks
+           4. Passing standards & grading criteria.`
+        : `Analyze this institutional faculty timetable and summarize in 3-5 bullet points:
+           1. Weekly teaching hours & working days
+           2. Theory vs Lab lecture allocations
+           3. Key subjects and assigned class batches
+           4. Any apparent scheduling constraints or continuous blocks.`;
+
+      const contents = [{
+        role: 'user',
+        parts: [{ text: `${summaryPrompt}\n\nDocument Text Content (Snippet):\n${extractedText.substring(0, 12000)}` }]
+      }];
+
+      const { response } = await generateWithFallback(
+        clientApiKey,
+        modelName,
+        contents,
+        'You are an expert academic document parser for engineering colleges and universities.',
+        { responseMimeType: null, temperature: 0.1, maxOutputTokens: 1024 }
+      );
+      summary = response.text();
+    } catch (sumErr) {
+      console.warn('Could not generate document summary, using fallback snippet:', sumErr.message);
+      summary = `Uploaded ${docType === 'regulation' ? 'Academic Regulation' : 'Faculty Timetable'} (${(extractedText.length / 1000).toFixed(1)}k characters extracted).`;
+    }
+
+    res.json({
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      docType,
+      extractedText: extractedText.substring(0, 45000), // Cap at 45k chars for prompt safety
+      summary
+    });
+
+  } catch (error) {
+    console.error('Error parsing copilot document:', error);
+    res.status(500).json({ error: 'Failed to process document: ' + error.message });
+  }
+});
+
+// Chat endpoint for Faculty Academic Copilot
+app.post('/api/faculty-copilot/chat', async (req, res) => {
+  try {
+    const { 
+      message, 
+      chatHistory = [], 
+      regulationContext = '', 
+      timetableContext = '', 
+      activeSyllabus = null,
+      regulationPreset = 'R24 Autonomous Scheme',
+      modelName = process.env.DEFAULT_MODEL || 'gemini-2.5-flash'
+    } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'A query message is required.' });
+    }
+
+    const clientApiKey = req.headers['x-api-key'];
+
+    const systemPrompt = `You are SyllabiMind's Institutional Academic & Regulations Copilot, an elite AI advisor specifically designed for Higher Education, Engineering, and University Faculty members.
+
+Your primary mission is to assist faculty members with:
+1. ACADEMIC REGULATIONS & ASSESSMENT SCHEMES:
+   - Deep expertise in university regulations (e.g. R24, R23, R20, Autonomous College schemes, JNTU, Anna Univ, VTU, UGC/AICTE CBCS norms).
+   - For R24 and similar modern outcome-based regulations:
+     * Full semester examination structure: Formative Assessments (FA1, FA2, FA3, FA4), 2 Descriptive Mid Exams (Mid-1 & Mid-2), and 1 Semester End Examination (SEE).
+     * Detailed marks breakdown: Continuous Internal Evaluation (CIE) = 40 marks, SEE = 60 marks, Total Course = 100 marks.
+     * FA structure: 4 Formative Assessments (FA1: Assignment/Quiz, FA2: Practical/Mini-project, FA3: Seminar/Case-study, FA4: Mock test), scaled to internal quota (e.g. 10 marks).
+     * Mid calculation: Mid-1 (Units 1, 2, half of 3), Mid-2 (half of Unit 3, Units 4, 5). Final mid score formula: e.g. 80% weightage to higher mid score + 20% to the other mid score (or standard average).
+     * Passing standards: Minimum 35% in SEE (e.g. 21/60) and 40% aggregate (CIE + SEE >= 40/100).
+     * Course Outcome (CO) attainment formulas and Bloom cognitive taxonomy calibration.
+
+2. TEACHING METHODOLOGIES & PEDAGOGICAL EXECUTION:
+   - Practical instructional designs: Flipped classrooms, Problem-Based Learning (PBL), Think-Pair-Share, active coding labs, real-world case study discussions, micro-learning segments.
+   - Specific strategies tailored to complex engineering and computing subjects (e.g. Machine Learning, Data Structures, Operating Systems, AI).
+   - Remedial instructional strategies and re-assessment question papers for students requiring additional academic support.
+
+3. TIMETABLE & SCHEDULING ADVISING:
+   - Resolving timetable confusions, lecture vs tutorial vs lab practical hours (L-T-P-C).
+   - Resolving scheduling clashes (e.g. lab batch overlap with theory sessions, shared hardware lab rooms).
+   - Balancing faculty teaching workloads (AICTE/UGC workload norms: 14-18 hours/week).
+   - Weekly lesson plan synchronization between theory lectures and concurrent practical lab experiments.
+
+RESPONSE STYLE:
+- Professional, supportive, and authoritative academic tone.
+- Use clear Markdown formatting with bold section headings, bulleted action items, and Markdown tables for marks allotments.
+- Use LaTeX / KaTeX math notation for formulas and calculations (e.g., $CIE = \\text{Mid Weightage} + \\text{FA Scaled} + \\text{Attendance}$).
+- Ground your answers in the active course syllabus, institutional regulations, and timetable context provided. When specific regulations (like R24) are referenced, detail the exact FA1-FA4, Mid, and SEE components clearly.`;
+
+    // Build structured context
+    let contextHeader = `=== ACTIVE FACULTY CONTEXT ===\n`;
+    contextHeader += `Selected Regulation Framework: ${regulationPreset || 'R24 Autonomous Scheme'}\n`;
+
+    if (activeSyllabus) {
+      contextHeader += `Course Subject: ${activeSyllabus.subject_name || 'Machine Learning'}\n`;
+      if (activeSyllabus.modules && activeSyllabus.modules.length > 0) {
+        contextHeader += `Curriculum Modules: ${activeSyllabus.modules.map(m => m.module_name).join(', ')}\n`;
+      }
+    }
+
+    if (regulationContext) {
+      contextHeader += `\n--- ACTIVE INSTITUTIONAL REGULATION GUIDELINES ---\n${regulationContext.substring(0, 15000)}\n`;
+    } else {
+      contextHeader += `\n--- DEFAULT R24 REGULATION REFERENCE ---\n` +
+        `Regulation: R24 Autonomous Engineering Curriculum\n` +
+        `Assessment Structure for 1 Semester:\n` +
+        `- 4 Formative Assessments: FA1, FA2, FA3, FA4 (scaled to 10 marks total)\n` +
+        `- 2 Mid-term Descriptive Exams: Mid-1 (25 marks), Mid-2 (25 marks)\n` +
+        `- Final Mid Score Weightage: 80% of higher mid + 20% of lower mid (scaled to 25 marks)\n` +
+        `- Attendance & Day-to-Day Engagement: 5 marks\n` +
+        `- Total CIE (Internal): 40 Marks\n` +
+        `- Semester End Examination (SEE): 60 Marks\n` +
+        `- Total Marks: 100 Marks (Passing: >= 35% in SEE and >= 40% overall aggregate)\n`;
+    }
+
+    if (timetableContext) {
+      contextHeader += `\n--- ACTIVE FACULTY / DEPARTMENT TIMETABLE ---\n${timetableContext.substring(0, 12000)}\n`;
+    }
+
+    // Build Gemini contents array with history
+    const contents = [];
+    contents.push({
+      role: 'user',
+      parts: [{ text: `${contextHeader}\n\nFaculty Member's Request:\n${message}` }]
+    });
+
+    // If chatHistory is provided, format previous turns
+    if (Array.isArray(chatHistory) && chatHistory.length > 0) {
+      // Take last 8 turns for conversational continuity
+      const recentHistory = chatHistory.slice(-8);
+      const conversationTurns = [];
+      
+      // Inject context in first prompt
+      conversationTurns.push({
+        role: 'user',
+        parts: [{ text: `${contextHeader}\n\nI am consulting you as a faculty member. Please assist with my academic, regulations, timetable, and teaching questions.` }]
+      });
+      conversationTurns.push({
+        role: 'model',
+        parts: [{ text: `Understood! I have loaded the active regulation framework (${regulationPreset}), timetable data, and curriculum context. How can I assist you with your course delivery, assessment breakdown, or scheduling today?` }]
+      });
+
+      recentHistory.forEach(turn => {
+        if (turn.role && turn.content) {
+          conversationTurns.push({
+            role: turn.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: turn.content }]
+          });
+        }
+      });
+
+      // Append current message
+      conversationTurns.push({
+        role: 'user',
+        parts: [{ text: message }]
+      });
+
+      const { response, modelUsed } = await generateWithFallback(
+        clientApiKey,
+        modelName,
+        conversationTurns,
+        systemPrompt,
+        { responseMimeType: null, temperature: 0.3, maxOutputTokens: 4096 }
+      );
+
+      return res.json({
+        reply: response.text(),
+        modelUsed,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const { response, modelUsed } = await generateWithFallback(
+      clientApiKey,
+      modelName,
+      contents,
+      systemPrompt,
+      { responseMimeType: null, temperature: 0.3, maxOutputTokens: 4096 }
+    );
+
+    res.json({
+      reply: response.text(),
+      modelUsed,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in faculty copilot chat:', error);
+    res.status(500).json({ error: 'Faculty copilot service error: ' + error.message });
   }
 });
 

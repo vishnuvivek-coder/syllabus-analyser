@@ -11,6 +11,7 @@ import QuestionVariants from './components/QuestionVariants';
 import PaperAnalyzer from './components/PaperAnalyzer';
 import ModuleList from './components/ModuleList';
 import Analytics from './components/Analytics';
+import FacultyChatbot from './components/FacultyChatbot';
 import LoginPage, { DEMO_USERS } from './components/LoginPage';
 import { analyzeSyllabus } from './utils/api';
 
@@ -55,10 +56,10 @@ export default function App() {
   const pathClean = location.pathname.replace(/^\//, '').toLowerCase();
   const VALID_TABS = [
     'blueprint', 'variants', 'lab', 'pastpapers', 'graph', 
-    'concepts', 'modules', 'analytics', 'evaluator', 'flashcards', 'upload'
+    'concepts', 'modules', 'analytics', 'evaluator', 'flashcards', 'upload', 'copilot'
   ];
   const activeTab = VALID_TABS.includes(pathClean)
-    ? pathClean
+    ? (user?.role === 'student' && pathClean === 'copilot' ? 'graph' : pathClean)
     : (user?.role === 'faculty' ? 'blueprint' : 'graph');
 
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +107,8 @@ export default function App() {
     } else if (user && (location.pathname === '/login' || location.pathname === '/')) {
       const target = data ? (user.role === 'faculty' ? '/blueprint' : '/graph') : '/upload';
       navigate(target, { replace: true });
+    } else if (user?.role === 'student' && location.pathname === '/copilot') {
+      navigate('/graph', { replace: true });
     }
   }, [user, location.pathname, navigate, data]);
 
@@ -726,9 +729,17 @@ export default function App() {
                     ✍️ Evaluator
                   </button>
                   <button 
+                    onClick={() => navigate('/copilot')} 
+                    className={`tab-btn ${activeTab === 'copilot' ? 'active' : ''}`}
+                    style={{ flex: 1, minWidth: '95px', color: 'var(--color-acid-lime)', borderColor: activeTab === 'copilot' ? 'var(--color-acid-lime)' : undefined }}
+                    title="Faculty Academic Copilot: R24 regulations, marks allotment, timetable & teaching advisor (/copilot)"
+                  >
+                    🤖 Academic Copilot
+                  </button>
+                  <button 
                     onClick={() => navigate('/upload')} 
                     className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px', color: 'var(--color-acid-lime)' }}
+                    style={{ flex: 1, minWidth: '95px' }}
                     title="Upload or import new syllabus materials (/upload)"
                   >
                     📤 Upload
@@ -816,7 +827,7 @@ export default function App() {
             <div style={{ flex: '1', minHeight: '0', position: 'relative' }}>
               
               {/* Fallback prompt for tabs requiring syllabus data when no syllabus has been parsed yet */}
-              {!data && !['lab', 'evaluator'].includes(activeTab) ? (
+              {!data && !['lab', 'evaluator', 'copilot'].includes(activeTab) ? (
                 <div className="glass-panel" style={{ 
                   padding: '60px 24px', 
                   textAlign: 'center', 
@@ -935,6 +946,15 @@ export default function App() {
                   <div style={{ display: activeTab === 'analytics' ? 'block' : 'none', height: '100%' }}>
                     <Analytics data={data} />
                   </div>
+                  {user.role === 'faculty' && (
+                    <div style={{ display: activeTab === 'copilot' ? 'block' : 'none', height: '100%' }}>
+                      <FacultyChatbot 
+                        syllabusData={data} 
+                        apiKey={localStorage.getItem('gemini_api_key')} 
+                        modelName={localStorage.getItem('model_name') || 'gemini-2.5-flash'} 
+                      />
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -942,6 +962,33 @@ export default function App() {
         </div>
       )}
 
+      {/* Floating Quick-Access Copilot Button for Faculty (Visible across other pages) */}
+      {user.role === 'faculty' && activeTab !== 'copilot' && (
+        <button
+          type="button"
+          onClick={() => navigate('/copilot')}
+          className="btn btn-primary"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 35,
+            padding: '10px 18px',
+            borderRadius: '9999px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6), 0 0 14px rgba(228, 242, 34, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.84rem',
+            fontWeight: '510',
+            letterSpacing: '-0.01em'
+          }}
+          title="Open Faculty Academic Copilot AI"
+        >
+          <span>🤖</span>
+          <span>Academic Copilot</span>
+        </button>
+      )}
 
     </div>
   );
