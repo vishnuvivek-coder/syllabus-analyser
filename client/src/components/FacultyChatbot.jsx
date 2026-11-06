@@ -149,6 +149,8 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [isDraggingReg, setIsDraggingReg] = useState(false);
+  const [isDraggingTT, setIsDraggingTT] = useState(false);
 
   const messagesEndRef = useRef(null);
   const regFileInputRef = useRef(null);
@@ -272,9 +274,8 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
     }
   };
 
-  // Upload Document Handler (Regulations or Timetable)
-  const handleFileUpload = async (e, docType) => {
-    const file = e.target.files?.[0];
+  // Core Process File function (shared by File Input and Drag & Drop)
+  const processFile = async (file, docType) => {
     if (!file) return;
 
     setIsUploadingDoc(true);
@@ -283,7 +284,7 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
     const formData = new FormData();
     formData.append('docFile', file);
     formData.append('docType', docType);
-    formData.append('modelName', modelName || 'gemini-2.5-flash');
+    formData.append('modelName', modelName || localStorage.getItem('model_name') || 'gemini-2.5-flash');
 
     try {
       const res = await fetch('/api/faculty-copilot/parse-document', {
@@ -299,7 +300,7 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
         throw new Error(errData.error || 'Failed to parse uploaded document.');
       }
 
-      const result = await data.json ? await res.json() : await res.json();
+      const result = await res.json();
 
       if (docType === 'regulation') {
         setUploadedRegulation(result);
@@ -315,10 +316,10 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
       const sysMsg = {
         id: 'sys_' + Date.now(),
         role: 'assistant',
-        content: `📁 **Uploaded Document Indexed:** \`${result.fileName}\` (${(result.fileSize / 1024).toFixed(1)} KB)
+        content: `📁 **Uploaded ${docType === 'regulation' ? 'Regulation' : 'Timetable'} Document:** \`${result.fileName}\` (${(result.fileSize / 1024).toFixed(1)} KB)
         
 **Institutional Summary:**
-${result.summary || 'Document extracted and synced with Copilot.'}`,
+${result.summary || 'Document extracted and active in Copilot.'}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, sysMsg]);
@@ -328,7 +329,72 @@ ${result.summary || 'Document extracted and synced with Copilot.'}`,
       setUploadError(err.message || 'Upload failed');
     } finally {
       setIsUploadingDoc(false);
-      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleFileUpload = (e, docType) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file, docType);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const handleRegDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingReg) setIsDraggingReg(true);
+  };
+
+  const handleRegDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingReg(true);
+  };
+
+  const handleRegDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setIsDraggingReg(false);
+  };
+
+  const handleRegDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingReg(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      processFile(files[0], 'regulation');
+    }
+  };
+
+  const handleTTDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingTT) setIsDraggingTT(true);
+  };
+
+  const handleTTDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingTT(true);
+  };
+
+  const handleTTDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setIsDraggingTT(false);
+  };
+
+  const handleTTDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingTT(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      processFile(files[0], 'timetable');
     }
   };
 
@@ -770,18 +836,32 @@ ${result.summary || 'Document extracted and synced with Copilot.'}`,
                 // Regulations Configuration
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   
-                  {/* Upload Custom Regulation File Box */}
-                  <div style={{
-                    padding: '16px',
-                    borderRadius: '10px',
-                    border: '1px dashed var(--color-graphite)',
-                    background: 'var(--color-obsidian)',
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
+                  {/* Interactive Drag & Drop Box for Academic Regulations */}
+                  <div
+                    onDragOver={handleRegDragOver}
+                    onDragEnter={handleRegDragEnter}
+                    onDragLeave={handleRegDragLeave}
+                    onDrop={handleRegDrop}
+                    onClick={() => !isUploadingDoc && regFileInputRef.current?.click()}
+                    style={{
+                      padding: '24px 20px',
+                      borderRadius: '12px',
+                      border: isDraggingReg 
+                        ? '2px dashed var(--color-acid-lime)' 
+                        : (uploadedRegulation ? '1px solid rgba(228, 242, 34, 0.4)' : '1.5px dashed var(--color-graphite)'),
+                      background: isDraggingReg 
+                        ? 'rgba(228, 242, 34, 0.08)' 
+                        : (uploadedRegulation ? 'rgba(228, 242, 34, 0.03)' : 'var(--color-obsidian)'),
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: isUploadingDoc ? 'default' : 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isDraggingReg ? '0 0 24px rgba(228, 242, 34, 0.25)' : 'none'
+                    }}
+                  >
                     <input 
                       type="file" 
                       ref={regFileInputRef} 
@@ -789,40 +869,105 @@ ${result.summary || 'Document extracted and synced with Copilot.'}`,
                       accept=".pdf,.txt,.doc,.docx,image/*" 
                       style={{ display: 'none' }} 
                     />
-                    <div style={{ fontSize: '1.8rem' }}>📤</div>
-                    <div>
-                      <span style={{ fontSize: '0.86rem', color: 'var(--color-paper)', fontWeight: '510', display: 'block' }}>
-                        Upload Official Academic Regulations Document
-                      </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--color-fog)' }}>
-                        Supports college regulation PDFs, syllabi assessment chapters, or scanned circulars
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => regFileInputRef.current?.click()}
-                      disabled={isUploadingDoc}
-                      className="btn btn-secondary"
-                      style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                    >
-                      {isUploadingDoc ? 'Parsing Document...' : 'Select Regulation PDF / Document'}
-                    </button>
 
-                    {uploadedRegulation && (
-                      <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(228, 242, 34, 0.08)', borderRadius: '6px', border: '1px solid rgba(228, 242, 34, 0.2)', width: '100%', textAlign: 'left' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--color-paper)', fontWeight: '510' }}>
-                            ✓ Active Custom File: {uploadedRegulation.fileName}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setUploadedRegulation(null)}
-                            style={{ background: 'none', border: 'none', color: 'var(--color-coral-red)', fontSize: '0.72rem', cursor: 'pointer' }}
-                          >
-                            Remove
-                          </button>
+                    {isUploadingDoc ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '10px 0' }}>
+                        <div style={{ width: '28px', height: '28px', border: '3px solid rgba(228, 242, 34, 0.2)', borderTopColor: 'var(--color-acid-lime)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: '0.84rem', color: 'var(--color-paper)', fontWeight: '510' }}>
+                          Analyzing & Extracting Academic Regulation Rules...
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-fog)' }}>
+                          Identifying FAs, mid weightages, SEE guidelines, and passing criteria
+                        </span>
+                      </div>
+                    ) : isDraggingReg ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 0' }}>
+                        <div style={{ fontSize: '2.4rem', transform: 'scale(1.15)', transition: 'transform 0.2s' }}>📥</div>
+                        <span style={{ fontSize: '0.92rem', color: 'var(--color-acid-lime)', fontWeight: '600' }}>
+                          Drop Regulation PDF Here to Analyze
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-fog)' }}>
+                          Release to extract marks allocation rules automatically
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '10px',
+                          background: 'rgba(228, 242, 34, 0.1)',
+                          border: '1px solid rgba(228, 242, 34, 0.25)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.4rem'
+                        }}>
+                          📜
                         </div>
-                        <p style={{ fontSize: '0.72rem', color: 'var(--color-fog)', margin: '4px 0 0', lineHeight: '1.4' }}>
+                        
+                        <div>
+                          <span style={{ fontSize: '0.9rem', color: 'var(--color-paper)', fontWeight: '510', display: 'block', marginBottom: '4px' }}>
+                            Drag & Drop Academic Regulations Document Here
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--color-fog)' }}>
+                            or <span style={{ color: 'var(--color-acid-lime)', textDecoration: 'underline' }}>click to browse files</span> (.pdf, .docx, .txt, scanned circulars)
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            regFileInputRef.current?.click();
+                          }}
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 16px', fontSize: '0.78rem', borderRadius: '6px' }}
+                        >
+                          Select Regulation PDF / Document
+                        </button>
+                      </>
+                    )}
+
+                    {uploadedRegulation && !isUploadingDoc && (
+                      <div 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{ 
+                          marginTop: '8px', 
+                          padding: '12px 14px', 
+                          background: 'rgba(228, 242, 34, 0.08)', 
+                          borderRadius: '8px', 
+                          border: '1px solid rgba(228, 242, 34, 0.3)', 
+                          width: '100%', 
+                          textAlign: 'left' 
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-paper)', fontWeight: '510', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: 'var(--color-acid-lime)' }}>✓</span> 
+                            <span>{uploadedRegulation.fileName}</span>
+                            <span className="badge" style={{ fontSize: '0.64rem', padding: '1px 5px' }}>
+                              {(uploadedRegulation.fileSize / 1024).toFixed(1)} KB
+                            </span>
+                          </span>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => regFileInputRef.current?.click()}
+                              style={{ background: 'none', border: 'none', color: 'var(--color-acid-lime)', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setUploadedRegulation(null)}
+                              style={{ background: 'none', border: 'none', color: 'var(--color-coral-red)', fontSize: '0.72rem', cursor: 'pointer' }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--color-fog)', margin: '6px 0 0', lineHeight: '1.45', whiteSpace: 'pre-wrap' }}>
                           {uploadedRegulation.summary}
                         </p>
                       </div>
@@ -888,18 +1033,32 @@ ${result.summary || 'Document extracted and synced with Copilot.'}`,
                 // Timetable Configuration
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   
-                  {/* Upload Timetable Document */}
-                  <div style={{
-                    padding: '16px',
-                    borderRadius: '10px',
-                    border: '1px dashed var(--color-graphite)',
-                    background: 'var(--color-obsidian)',
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
+                  {/* Interactive Drag & Drop Box for Department Timetable */}
+                  <div
+                    onDragOver={handleTTDragOver}
+                    onDragEnter={handleTTDragEnter}
+                    onDragLeave={handleTTDragLeave}
+                    onDrop={handleTTDrop}
+                    onClick={() => !isUploadingDoc && ttFileInputRef.current?.click()}
+                    style={{
+                      padding: '24px 20px',
+                      borderRadius: '12px',
+                      border: isDraggingTT 
+                        ? '2px dashed var(--color-cyan-glow)' 
+                        : (uploadedTimetableDoc ? '1px solid rgba(56, 189, 248, 0.4)' : '1.5px dashed var(--color-graphite)'),
+                      background: isDraggingTT 
+                        ? 'rgba(56, 189, 248, 0.08)' 
+                        : (uploadedTimetableDoc ? 'rgba(56, 189, 248, 0.03)' : 'var(--color-obsidian)'),
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: isUploadingDoc ? 'default' : 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isDraggingTT ? '0 0 24px rgba(56, 189, 248, 0.25)' : 'none'
+                    }}
+                  >
                     <input 
                       type="file" 
                       ref={ttFileInputRef} 
@@ -907,39 +1066,107 @@ ${result.summary || 'Document extracted and synced with Copilot.'}`,
                       accept=".pdf,.csv,.txt,image/*" 
                       style={{ display: 'none' }} 
                     />
-                    <div style={{ fontSize: '1.8rem' }}>📅</div>
-                    <div>
-                      <span style={{ fontSize: '0.86rem', color: 'var(--color-paper)', fontWeight: '510', display: 'block' }}>
-                        Upload Institutional / Faculty Timetable
-                      </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--color-fog)' }}>
-                        Upload department schedule PDF, CSV spreadsheet, or image snapshot
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => ttFileInputRef.current?.click()}
-                      disabled={isUploadingDoc}
-                      className="btn btn-secondary"
-                      style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                    >
-                      {isUploadingDoc ? 'Parsing Timetable...' : 'Upload Timetable File'}
-                    </button>
 
-                    {uploadedTimetableDoc && (
-                      <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.2)', width: '100%', textAlign: 'left' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--color-paper)', fontWeight: '510' }}>
-                            ✓ Active Timetable File: {uploadedTimetableDoc.fileName}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setUploadedTimetableDoc(null)}
-                            style={{ background: 'none', border: 'none', color: 'var(--color-coral-red)', fontSize: '0.72rem', cursor: 'pointer' }}
-                          >
-                            Reset
-                          </button>
+                    {isUploadingDoc ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '10px 0' }}>
+                        <div style={{ width: '28px', height: '28px', border: '3px solid rgba(56, 189, 248, 0.2)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: '0.84rem', color: 'var(--color-paper)', fontWeight: '510' }}>
+                          Analyzing & Extracting Teaching Schedule...
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-fog)' }}>
+                          Extracting periods, lab slots, and faculty weekly workload
+                        </span>
+                      </div>
+                    ) : isDraggingTT ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 0' }}>
+                        <div style={{ fontSize: '2.4rem', transform: 'scale(1.15)', transition: 'transform 0.2s' }}>📥</div>
+                        <span style={{ fontSize: '0.92rem', color: '#38bdf8', fontWeight: '600' }}>
+                          Drop Timetable File Here to Analyze
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-fog)' }}>
+                          Release to extract weekly period allocations automatically
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '10px',
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          border: '1px solid rgba(56, 189, 248, 0.25)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.4rem'
+                        }}>
+                          📅
                         </div>
+
+                        <div>
+                          <span style={{ fontSize: '0.9rem', color: 'var(--color-paper)', fontWeight: '510', display: 'block', marginBottom: '4px' }}>
+                            Drag & Drop Institutional / Faculty Timetable Here
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--color-fog)' }}>
+                            or <span style={{ color: '#38bdf8', textDecoration: 'underline' }}>click to browse files</span> (.pdf, .csv spreadsheet, image)
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            ttFileInputRef.current?.click();
+                          }}
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 16px', fontSize: '0.78rem', borderRadius: '6px' }}
+                        >
+                          Upload Timetable File
+                        </button>
+                      </>
+                    )}
+
+                    {uploadedTimetableDoc && !isUploadingDoc && (
+                      <div 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{ 
+                          marginTop: '8px', 
+                          padding: '12px 14px', 
+                          background: 'rgba(56, 189, 248, 0.08)', 
+                          borderRadius: '8px', 
+                          border: '1px solid rgba(56, 189, 248, 0.3)', 
+                          width: '100%', 
+                          textAlign: 'left' 
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--color-paper)', fontWeight: '510', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ color: '#38bdf8' }}>✓</span> 
+                            <span>{uploadedTimetableDoc.fileName}</span>
+                            <span className="badge" style={{ fontSize: '0.64rem', padding: '1px 5px' }}>
+                              {(uploadedTimetableDoc.fileSize / 1024).toFixed(1)} KB
+                            </span>
+                          </span>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => ttFileInputRef.current?.click()}
+                              style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline' }}
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setUploadedTimetableDoc(null)}
+                              style={{ background: 'none', border: 'none', color: 'var(--color-coral-red)', fontSize: '0.72rem', cursor: 'pointer' }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--color-fog)', margin: '6px 0 0', lineHeight: '1.45', whiteSpace: 'pre-wrap' }}>
+                          {uploadedTimetableDoc.summary}
+                        </p>
                       </div>
                     )}
                   </div>
