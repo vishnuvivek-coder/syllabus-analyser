@@ -122,15 +122,6 @@ export default function App() {
     navigate('/login');
   };
 
-  const handleSwitchRole = () => {
-    const newRole = user?.role === 'faculty' ? 'student' : 'faculty';
-    const newUser = DEMO_USERS[newRole];
-    setUser(newUser);
-    localStorage.setItem('syllabus_auth_user', JSON.stringify(newUser));
-    const nextRoute = newRole === 'faculty' ? '/blueprint' : '/graph';
-    navigate(nextRoute);
-  };
-
   const handleAnalyze = async (inputs) => {
     setIsLoading(true);
     setError(null);
@@ -409,18 +400,6 @@ export default function App() {
               </span>
             </div>
           </div>
-
-          {/* Switch Role Quick Button */}
-          <button
-            type="button"
-            onClick={handleSwitchRole}
-            className="btn btn-secondary"
-            style={{ padding: '5px 10px', fontSize: '0.74rem' }}
-            title="Switch between Faculty and Student roles"
-          >
-            <span>🔄</span>
-            <span>Switch to {user.role === 'faculty' ? 'Student' : 'Faculty'}</span>
-          </button>
 
           {/* Sign Out Button */}
           <button
