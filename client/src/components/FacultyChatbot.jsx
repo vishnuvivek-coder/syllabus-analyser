@@ -227,11 +227,13 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
         .slice(-6)
         .map(m => ({ role: m.role, content: m.content }));
 
+      const effectiveApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
+
       const res = await fetch('/api/faculty-copilot/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(apiKey ? { 'x-api-key': apiKey } : {})
+          ...(effectiveApiKey ? { 'x-api-key': effectiveApiKey } : {})
         },
         body: JSON.stringify({
           message: textToSend,
@@ -286,11 +288,13 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
     formData.append('docType', docType);
     formData.append('modelName', modelName || localStorage.getItem('model_name') || 'gemini-2.5-flash');
 
+    const effectiveApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
+
     try {
       const res = await fetch('/api/faculty-copilot/parse-document', {
         method: 'POST',
         headers: {
-          ...(apiKey ? { 'x-api-key': apiKey } : {})
+          ...(effectiveApiKey ? { 'x-api-key': effectiveApiKey } : {})
         },
         body: formData
       });
@@ -446,7 +450,22 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '0', position: 'relative' }}>
+    <div 
+      className="glass-panel"
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        width: '100%',
+        minHeight: '0', 
+        maxHeight: '100%',
+        overflow: 'hidden', 
+        position: 'relative',
+        borderRadius: '12px',
+        background: 'var(--color-carbon)',
+        border: '1px solid var(--color-graphite)'
+      }}
+    >
       
       {/* Copilot Header */}
       <div style={{
@@ -457,7 +476,8 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '12px'
+        gap: '12px',
+        flexShrink: 0
       }}>
         {/* Title & Active Metadata */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -525,16 +545,20 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
       </div>
 
       {/* Suggested Quick Questions Bar */}
-      <div style={{
-        padding: '8px 16px',
-        background: 'rgba(15, 16, 17, 0.6)',
-        borderBottom: '1px solid var(--color-graphite)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        overflowX: 'auto',
-        whiteSpace: 'nowrap'
-      }}>
+      <div 
+        className="no-scrollbar"
+        style={{
+          padding: '8px 16px',
+          background: 'rgba(15, 16, 17, 0.6)',
+          borderBottom: '1px solid var(--color-graphite)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+          flexShrink: 0
+        }}
+      >
         <span style={{ fontSize: '0.72rem', color: 'var(--color-fog)', fontWeight: '510', flexShrink: 0 }}>
           💡 Recommended Topics:
         </span>
@@ -564,6 +588,7 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
         flex: '1',
         minHeight: '0',
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: '20px 24px',
         display: 'flex',
         flexDirection: 'column',
@@ -625,10 +650,14 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
                   color: 'var(--color-paper)',
                   fontSize: '0.88rem',
                   lineHeight: '1.6',
-                  boxShadow: isUser ? 'none' : '0 4px 12px rgba(0,0,0,0.25)'
+                  boxShadow: isUser ? 'none' : '0 4px 12px rgba(0,0,0,0.25)',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'anywhere'
                 }}
               >
-                <MathText text={msg.content} />
+                <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                  <MathText text={msg.content} />
+                </div>
               </div>
             </div>
           );
@@ -666,7 +695,8 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
         borderTop: '1px solid var(--color-graphite)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '8px',
+        flexShrink: 0
       }}>
         {/* Active context badge preview */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--color-fog)' }}>

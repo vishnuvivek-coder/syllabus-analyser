@@ -799,7 +799,7 @@ export default function App() {
             </nav>
 
             {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
-            <div style={{ flex: '1', minHeight: '0', position: 'relative' }}>
+            <div style={{ flex: '1', minHeight: '0', height: '100%', position: 'relative' }}>
               
               {/* Fallback prompt for tabs requiring syllabus data when no syllabus has been parsed yet */}
               {!data && !['lab', 'evaluator', 'copilot'].includes(activeTab) ? (
@@ -922,7 +922,16 @@ export default function App() {
                     <Analytics data={data} />
                   </div>
                   {user.role === 'faculty' && (
-                    <div style={{ display: activeTab === 'copilot' ? 'block' : 'none', height: '100%' }}>
+                    <div style={{ 
+                      display: activeTab === 'copilot' ? 'flex' : 'none', 
+                      flexDirection: 'column', 
+                      position: 'absolute', 
+                      inset: 0, 
+                      minHeight: '0', 
+                      height: '100%', 
+                      width: '100%', 
+                      overflow: 'hidden' 
+                    }}>
                       <FacultyChatbot 
                         syllabusData={data} 
                         apiKey={localStorage.getItem('gemini_api_key')} 
