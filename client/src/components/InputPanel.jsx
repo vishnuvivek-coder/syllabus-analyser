@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
 
-export default function InputPanel({ onAnalyze, isLoading, progress }) {
-  const [syllabusText, setSyllabusText] = useState('');
+export default function InputPanel({ onAnalyze, isLoading, progress, activeData }) {
+  const [syllabusText, setSyllabusText] = useState(() => {
+    return localStorage.getItem('syllabus_draft_text') || '';
+  });
   const [syllabusFile, setSyllabusFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [moduleList, setModuleList] = useState('');
-  const [learningOutcomes, setLearningOutcomes] = useState('');
+  const [moduleList, setModuleList] = useState(() => {
+    return localStorage.getItem('syllabus_draft_modules') || '';
+  });
+  const [learningOutcomes, setLearningOutcomes] = useState(() => {
+    return localStorage.getItem('syllabus_draft_outcomes') || '';
+  });
+
+  // Persist draft syllabus inputs across browser reload
+  useEffect(() => {
+    try {
+      localStorage.setItem('syllabus_draft_text', syllabusText);
+      localStorage.setItem('syllabus_draft_modules', moduleList);
+      localStorage.setItem('syllabus_draft_outcomes', learningOutcomes);
+    } catch (e) {}
+  }, [syllabusText, moduleList, learningOutcomes]);
   
   // Settings states & migration logic
   let savedModel = localStorage.getItem('model_name') || 'gemini-3.6-flash';
@@ -136,6 +151,33 @@ export default function InputPanel({ onAnalyze, isLoading, progress }) {
           Settings
         </button>
       </div>
+
+      {/* Active Persisted Curriculum Notice */}
+      {activeData && activeData.subject_name && (
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: '8px',
+          background: 'rgba(228, 242, 34, 0.06)',
+          border: '1px solid rgba(228, 242, 34, 0.3)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--color-acid-lime)', fontWeight: '600' }}>✓ ACTIVE CURRICULUM LOADED:</span>
+              <span style={{ fontSize: '0.86rem', color: 'var(--color-paper)', fontWeight: '510' }}>{activeData.subject_name}</span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-fog)' }}>
+              {activeData.modules?.length || 0} modules • Prerequisite map, blueprints, variants & questions active across tabs
+            </span>
+          </div>
+          <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
+            Persisted
+          </span>
+        </div>
+      )}
 
       {showSettings && (
         <form onSubmit={handleSaveSettings} style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '12px' }}>

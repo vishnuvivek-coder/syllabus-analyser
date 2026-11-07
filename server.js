@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
@@ -9,6 +10,52 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Persistent Disk Storage Directory
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+const SYLLABUS_STORAGE_FILE = path.join(DATA_DIR, 'active_syllabus.json');
+const FACULTY_HUB_FILE = path.join(DATA_DIR, 'faculty_hub.json');
+
+function saveActiveSyllabus(data) {
+  try {
+    fs.writeFileSync(SYLLABUS_STORAGE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error persisting active syllabus to disk:', err);
+  }
+}
+
+function loadActiveSyllabus() {
+  try {
+    if (fs.existsSync(SYLLABUS_STORAGE_FILE)) {
+      return JSON.parse(fs.readFileSync(SYLLABUS_STORAGE_FILE, 'utf-8'));
+    }
+  } catch (err) {
+    console.error('Error reading active syllabus from disk:', err);
+  }
+  return null;
+}
+
+function saveFacultyHub(state) {
+  try {
+    fs.writeFileSync(FACULTY_HUB_FILE, JSON.stringify(state, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error persisting faculty hub to disk:', err);
+  }
+}
+
+function loadFacultyHub() {
+  try {
+    if (fs.existsSync(FACULTY_HUB_FILE)) {
+      return JSON.parse(fs.readFileSync(FACULTY_HUB_FILE, 'utf-8'));
+    }
+  } catch (err) {
+    console.error('Error reading faculty hub from disk:', err);
+  }
+  return null;
+}
 
 // In-Memory Fast Cache for Instant Re-analysis
 const analysisCache = new Map();
@@ -459,6 +506,9 @@ Strictly adhere to the following JSON structure:
       analysisCache.delete(firstKey);
     }
 
+    // Persist active syllabus to disk so it survives browser reloads and server restarts
+    saveActiveSyllabus(parsedData);
+
     res.json(parsedData);
   } catch (error) {
     console.error('Error generating analysis:', error);
@@ -657,6 +707,9 @@ Strictly adhere to the following JSON structure:
       const firstKey = analysisCache.keys().next().value;
       analysisCache.delete(firstKey);
     }
+
+    // Persist active syllabus to disk
+    saveActiveSyllabus(parsedData);
 
     sendSSE(res, 'complete', parsedData);
     res.end();
@@ -1744,17 +1797,87 @@ app.post('/api/faculty-copilot/parse-document', upload.single('docFile'), async 
       summary = `Uploaded ${docType === 'regulation' ? 'Academic Regulation' : 'Faculty Timetable'} (${(extractedText.length / 1000).toFixed(1)}k characters extracted).`;
     }
 
-    res.json({
+    const parsedDocResult = {
       fileName: req.file.originalname,
       fileSize: req.file.size,
       docType,
       extractedText: extractedText.substring(0, 45000), // Cap at 45k chars for prompt safety
       summary
-    });
+    };
+
+    // Automatically persist to faculty hub file on server
+    try {
+      const currentHub = loadFacultyHub() || {};
+      if (docType === 'regulation') {
+        currentHub.uploadedRegulation = parsedDocResult;
+        currentHub.selectedPreset = 'custom';
+      } else {
+        currentHub.uploadedTimetableDoc = parsedDocResult;
+        currentHub.timetableText = parsedDocResult.extractedText;
+      }
+      currentHub.updatedAt = Date.now();
+      saveFacultyHub(currentHub);
+    } catch (persistErr) {
+      console.warn('Failed to auto-persist hub document:', persistErr.message);
+    }
+
+    res.json(parsedDocResult);
 
   } catch (error) {
     console.error('Error parsing copilot document:', error);
     res.status(500).json({ error: 'Failed to process document: ' + error.message });
+  }
+});
+
+// Active Syllabus Persistence Endpoints
+app.get('/api/syllabus/active', (req, res) => {
+  const active = loadActiveSyllabus();
+  res.json({ data: active });
+});
+
+app.post('/api/syllabus/active', express.json({ limit: '50mb' }), (req, res) => {
+  if (req.body && req.body.data) {
+    saveActiveSyllabus(req.body.data);
+    res.json({ success: true, timestamp: Date.now() });
+  } else {
+    res.status(400).json({ error: 'No syllabus data provided' });
+  }
+});
+
+app.delete('/api/syllabus/active', (req, res) => {
+  try {
+    if (fs.existsSync(SYLLABUS_STORAGE_FILE)) {
+      fs.unlinkSync(SYLLABUS_STORAGE_FILE);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Faculty Hub State Persistence Endpoints
+app.get('/api/faculty-copilot/hub-state', (req, res) => {
+  const state = loadFacultyHub() || {
+    uploadedRegulation: null,
+    uploadedTimetableDoc: null,
+    timetableText: '',
+    selectedPreset: 'r24_autonomous'
+  };
+  res.json(state);
+});
+
+app.post('/api/faculty-copilot/hub-state', express.json({ limit: '50mb' }), (req, res) => {
+  try {
+    const currentState = loadFacultyHub() || {};
+    const updatedState = {
+      ...currentState,
+      ...req.body,
+      updatedAt: Date.now()
+    };
+    saveFacultyHub(updatedState);
+    res.json({ success: true, state: updatedState });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

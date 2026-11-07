@@ -29,26 +29,62 @@ export default function App() {
     }
   });
 
-  // Persistent Active Curriculum Data
+  // Persistent Active Curriculum Data (with multi-layer fallback to prevent reload data loss)
   const [data, setData] = useState(() => {
     try {
       const saved = localStorage.getItem('syllabus_active_data');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) return JSON.parse(saved);
+
+      // Multi-layer fallback: check history sessions
+      const historyRaw = localStorage.getItem('syllabus_history_sessions');
+      if (historyRaw) {
+        const historyList = JSON.parse(historyRaw);
+        if (Array.isArray(historyList) && historyList.length > 0 && historyList[0].parsedData) {
+          return historyList[0].parsedData;
+        }
+      }
+      return null;
     } catch (e) {
       return null;
     }
   });
 
-  // Synchronize Active Curriculum Data with localStorage
+  // Restore active syllabus from server on initial mount / reload
+  useEffect(() => {
+    async function restoreServerSyllabus() {
+      try {
+        const res = await fetch('/api/syllabus/active');
+        if (res.ok) {
+          const result = await res.json();
+          if (result && result.data && result.data.modules && result.data.modules.length > 0) {
+            setData(prev => prev && prev.modules ? prev : result.data);
+            try {
+              localStorage.setItem('syllabus_active_data', JSON.stringify(result.data));
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn('Could not sync active syllabus from server storage:', err);
+      }
+    }
+    restoreServerSyllabus();
+  }, []);
+
+  // Synchronize Active Curriculum Data with localStorage & Server Disk Storage
   useEffect(() => {
     try {
       if (data) {
         localStorage.setItem('syllabus_active_data', JSON.stringify(data));
+        fetch('/api/syllabus/active', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data })
+        }).catch(() => {});
       } else {
         localStorage.removeItem('syllabus_active_data');
       }
     } catch (e) {
-      console.error('Failed to sync active syllabus data to localStorage', e);
+      console.error('Failed to sync active syllabus data', e);
     }
   }, [data]);
 
@@ -205,6 +241,7 @@ export default function App() {
   const handleResetAnalysis = () => {
     setData(null);
     localStorage.removeItem('syllabus_active_data');
+    fetch('/api/syllabus/active', { method: 'DELETE' }).catch(() => {});
     setError(null);
     setInitialLabTopic('');
     setInitialFlashcardTopic('');
@@ -607,7 +644,7 @@ export default function App() {
             </div>
 
             {/* Centered Parser Control Card */}
-            <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} />
+            <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} activeData={data} />
 
             {/* Error Notice */}
             {error && (
@@ -630,7 +667,7 @@ export default function App() {
           {/* Controls Sidebar */}
           {isSidebarOpen && data && (
             <aside style={{ height: '100%', minHeight: '0' }}>
-              <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} />
+              <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} activeData={data} />
             </aside>
           )}
 

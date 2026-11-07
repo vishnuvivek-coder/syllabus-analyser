@@ -40,3 +40,7 @@ scratch/
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Local Persisted Data
+data/*.json
+!data/.gitkeep

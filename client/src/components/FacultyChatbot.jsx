@@ -156,7 +156,7 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
   const regFileInputRef = useRef(null);
   const ttFileInputRef = useRef(null);
 
-  // Sync to localStorage
+  // Sync to localStorage and Server Persistence
   useEffect(() => {
     try {
       localStorage.setItem('syllabus_faculty_copilot_chat', JSON.stringify(messages));
@@ -166,6 +166,11 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
   useEffect(() => {
     try {
       localStorage.setItem('syllabus_faculty_copilot_preset', selectedPreset);
+      fetch('/api/faculty-copilot/hub-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedPreset })
+      }).catch(() => {});
     } catch (e) {}
   }, [selectedPreset]);
 
@@ -176,6 +181,11 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
       } else {
         localStorage.removeItem('syllabus_faculty_uploaded_reg');
       }
+      fetch('/api/faculty-copilot/hub-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadedRegulation })
+      }).catch(() => {});
     } catch (e) {}
   }, [uploadedRegulation]);
 
@@ -187,8 +197,51 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
       } else {
         localStorage.removeItem('syllabus_faculty_uploaded_tt');
       }
+      fetch('/api/faculty-copilot/hub-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timetableText, uploadedTimetableDoc })
+      }).catch(() => {});
     } catch (e) {}
   }, [timetableText, uploadedTimetableDoc]);
+
+  // Restore Hub State from Server on initial mount / reload
+  useEffect(() => {
+    async function restoreServerHubState() {
+      try {
+        const res = await fetch('/api/faculty-copilot/hub-state');
+        if (res.ok) {
+          const serverState = await res.json();
+          if (serverState) {
+            if (serverState.uploadedRegulation) {
+              setUploadedRegulation(prev => prev || serverState.uploadedRegulation);
+              try {
+                localStorage.setItem('syllabus_faculty_uploaded_reg', JSON.stringify(serverState.uploadedRegulation));
+              } catch (e) {}
+            }
+            if (serverState.uploadedTimetableDoc) {
+              setUploadedTimetableDoc(prev => prev || serverState.uploadedTimetableDoc);
+              try {
+                localStorage.setItem('syllabus_faculty_uploaded_tt', JSON.stringify(serverState.uploadedTimetableDoc));
+              } catch (e) {}
+            }
+            if (serverState.timetableText && serverState.timetableText !== DEFAULT_TIMETABLE_TEXT) {
+              setTimetableText(prev => (prev === DEFAULT_TIMETABLE_TEXT ? serverState.timetableText : prev));
+              try {
+                localStorage.setItem('syllabus_faculty_timetable_text', serverState.timetableText);
+              } catch (e) {}
+            }
+            if (serverState.selectedPreset) {
+              setSelectedPreset(prev => prev || serverState.selectedPreset);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not restore server faculty hub state:', err);
+      }
+    }
+    restoreServerHubState();
+  }, []);
 
   // Scroll chat to bottom on new message
   useEffect(() => {
