@@ -394,20 +394,33 @@ app.post('/api/analyze', upload.single('syllabusFile'), async (req, res) => {
       return res.json(cached.data);
     }
 
-    const systemPrompt = `You are an expert academic curriculum analyst.
-Your task is to analyze the provided syllabus and convert it into a structured knowledge representation in JSON format.
+    const systemPrompt = `You are an expert academic curriculum analyst and cognitive ontology architect.
+Your task is to analyze the provided syllabus and synthesize a structured, authentic knowledge representation in JSON format.
+
+CRITICAL PEDAGOGICAL DIRECTIVE FOR KNOWLEDGE MAP & CONCEPT DEPENDENCY GRAPH:
+- Do NOT follow the syllabus blindly or chronologically! College syllabi are administrative artifacts (usually divided into 5 arbitrary units of equal lecture hours) that often omit foundational mathematical prerequisites and obscure true cognitive dependencies.
+- You MUST construct a true EPISTEMIC ONTOLOGY of the subject domain:
+  1. Foundational Prerequisites: Explicitly include foundational mathematical, theoretical, and computational concepts (e.g., for Machine Learning: Linear Algebra & Matrix Calculus, Probability & Bayes' Rule, Multivariable Gradients, Convex Optimization) that are essential prerequisites for understanding the syllabus topics, even if the syllabus jumps directly into algorithms.
+  2. Cognitive Mastery Tiers: Categorize all concepts into 5 authentic learning layers:
+     - "foundations": Prerequisite mathematics, statistics, and foundational computer science concepts.
+     - "core_theory": Foundational learning paradigms, problem formulations, and core theoretical principles.
+     - "algorithmic": Concrete algorithms, architectures, and modeling techniques.
+     - "optimization": Loss functions, gradient optimization, regularization (L1/L2), bias-variance tradeoff, and validation metrics.
+     - "synthesis": Ensemble methods (Bagging/Boosting), deep representations, advanced paradigms, and production pipelines.
+  3. Authentic Dependency Flow: Establish prerequisite dependencies based on true cognitive progression (e.g. Cross-Entropy Loss & Sigmoid are prerequisites for Logistic Regression; Vectors & Margin Maximization are prerequisites for SVMs; Entropy & Information Gain are prerequisites for Decision Trees).
+  4. Transversal Principles: Include essential meta-concepts (e.g. Bias-Variance Tradeoff, Generalization Error, Overfitting, Curse of Dimensionality) that link across multiple modules.
+  5. Semantic Relationship Types: PREREQUISITE, ENABLES, OPTIMIZES, CONTRASTS, COMPONENT_OF.
 
 EFFICIENCY & SPEED GUIDELINES:
 - Output clean, dense, and valid JSON immediately with zero conversational filler.
 - Keep "subtopics" to 2-3 essential items per topic.
-- Keep "application_potential" and "estimated_learning_time" concise (under 8 words each).
-- Focus "concept_dependency_graph" on the 10-15 most central core concepts and their direct prerequisite relationships.
-- Do NOT invent topics that are not supported by the syllabus.
-- If ambiguous, note it briefly in "ambiguities".
+- Keep "application_potential" and "estimated_learning_time" concise.
+- Include 12-18 rich epistemic concepts spanning all 5 cognitive tiers.
 
 Strictly adhere to the following JSON structure:
 {
   "subject_name": "Subject name extracted from syllabus",
+  "subject_domain": "Academic discipline and theoretical domain",
   "modules": [
     {
       "module_id": "M1",
@@ -436,18 +449,24 @@ Strictly adhere to the following JSON structure:
   "ambiguities": ["List any ambiguities or missing dependencies"],
   
   "concept_dependency_graph": {
+    "subject_domain": "Subject domain name",
     "concepts": [
       {
         "id": "concept_1",
-        "name": "Linear Regression",
-        "category": "foundational",
+        "name": "Linear Algebra & Matrix Decompositions",
+        "tier": "foundations",
+        "category": "mathematical_prerequisite",
+        "description": "Vector spaces, dot products, eigenvalues, and SVD required for transformations and hyperplanes.",
         "prerequisites": [],
         "dependents": ["concept_2"],
         "related": [],
         "contrasting": [],
-        "application_domains": ["Machine Learning"],
-        "interdisciplinary_connections": ["Statistics"],
-        "assessment_suitability": ["application"]
+        "bloom_level": "Understand",
+        "difficulty": 6,
+        "is_syllabus_prerequisite": true,
+        "application_domains": ["Machine Learning", "Data Science"],
+        "interdisciplinary_connections": ["Mathematics", "Linear Algebra"],
+        "assessment_suitability": ["problem_solving", "derivation"]
       }
     ],
     "relationships": [
@@ -455,7 +474,8 @@ Strictly adhere to the following JSON structure:
         "source": "concept_1",
         "target": "concept_2",
         "type": "PREREQUISITE",
-        "strength": 0.85
+        "strength": 0.85,
+        "explanation": "Matrix projections form the geometric foundation of PCA"
       }
     ]
   }
@@ -587,16 +607,28 @@ app.post('/api/analyze-stream', upload.single('syllabusFile'), async (req, res) 
       return res.end();
     }
 
-    const systemPrompt = `You are an expert academic curriculum analyst.
-Your task is to analyze the provided syllabus and convert it into a structured knowledge representation in JSON format.
+    const systemPrompt = `You are an expert academic curriculum analyst and cognitive ontology architect.
+Your task is to analyze the provided syllabus and synthesize a structured, authentic knowledge representation in JSON format.
+
+CRITICAL PEDAGOGICAL DIRECTIVE FOR KNOWLEDGE MAP & CONCEPT DEPENDENCY GRAPH:
+- Do NOT follow the syllabus blindly or chronologically! College syllabi are administrative artifacts (usually divided into 5 arbitrary units of equal lecture hours) that often omit foundational mathematical prerequisites and obscure true cognitive dependencies.
+- You MUST construct a true EPISTEMIC ONTOLOGY of the subject domain:
+  1. Foundational Prerequisites: Explicitly include foundational mathematical, theoretical, and computational concepts (e.g., for Machine Learning: Linear Algebra & Matrix Calculus, Probability & Bayes' Rule, Multivariable Gradients, Convex Optimization) that are essential prerequisites for understanding the syllabus topics, even if the syllabus jumps directly into algorithms.
+  2. Cognitive Mastery Tiers: Categorize all concepts into 5 authentic learning layers:
+     - "foundations": Prerequisite mathematics, statistics, and foundational computer science concepts.
+     - "core_theory": Foundational learning paradigms, problem formulations, and core theoretical principles.
+     - "algorithmic": Concrete algorithms, architectures, and modeling techniques.
+     - "optimization": Loss functions, gradient optimization, regularization (L1/L2), bias-variance tradeoff, and validation metrics.
+     - "synthesis": Ensemble methods (Bagging/Boosting), deep representations, advanced paradigms, and production pipelines.
+  3. Authentic Dependency Flow: Establish prerequisite dependencies based on true cognitive progression (e.g. Cross-Entropy Loss & Sigmoid are prerequisites for Logistic Regression; Vectors & Margin Maximization are prerequisites for SVMs; Entropy & Information Gain are prerequisites for Decision Trees).
+  4. Transversal Principles: Include essential meta-concepts (e.g. Bias-Variance Tradeoff, Generalization Error, Overfitting, Curse of Dimensionality) that link across multiple modules.
+  5. Semantic Relationship Types: PREREQUISITE, ENABLES, OPTIMIZES, CONTRASTS, COMPONENT_OF.
 
 EFFICIENCY & SPEED GUIDELINES:
 - Output clean, dense, and valid JSON immediately with zero conversational filler.
 - Keep "subtopics" to 2-3 essential items per topic.
-- Keep "application_potential" and "estimated_learning_time" concise (under 8 words each).
-- Focus "concept_dependency_graph" on the 10-15 most central core concepts and their direct prerequisite relationships.
-- Do NOT invent topics that are not supported by the syllabus.
-- If ambiguous, note it briefly in "ambiguities".
+- Keep "application_potential" and "estimated_learning_time" concise.
+- Include 12-18 rich epistemic concepts spanning all 5 cognitive tiers.
 
 Strictly adhere to the following JSON structure:
 {
@@ -632,18 +664,24 @@ Strictly adhere to the following JSON structure:
   "ambiguities": ["List any ambiguities or missing dependencies"],
   
   "concept_dependency_graph": {
+    "subject_domain": "Subject domain name",
     "concepts": [
       {
         "id": "concept_1",
-        "name": "Linear Regression",
-        "category": "foundational",
+        "name": "Linear Algebra & Matrix Decompositions",
+        "tier": "foundations",
+        "category": "mathematical_prerequisite",
+        "description": "Vector spaces, dot products, eigenvalues, and SVD required for transformations and hyperplanes.",
         "prerequisites": [],
         "dependents": ["concept_2"],
         "related": [],
         "contrasting": [],
-        "application_domains": ["Machine Learning"],
-        "interdisciplinary_connections": ["Statistics"],
-        "assessment_suitability": ["application"]
+        "bloom_level": "Understand",
+        "difficulty": 6,
+        "is_syllabus_prerequisite": true,
+        "application_domains": ["Machine Learning", "Data Science"],
+        "interdisciplinary_connections": ["Mathematics", "Linear Algebra"],
+        "assessment_suitability": ["problem_solving", "derivation"]
       }
     ],
     "relationships": [
@@ -651,7 +689,8 @@ Strictly adhere to the following JSON structure:
         "source": "concept_1",
         "target": "concept_2",
         "type": "PREREQUISITE",
-        "strength": 0.85
+        "strength": 0.85,
+        "explanation": "Matrix projections form the geometric foundation of PCA"
       }
     ]
   }

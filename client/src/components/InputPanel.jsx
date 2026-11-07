@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function InputPanel({ onAnalyze, isLoading, progress, activeData }) {
+export default function InputPanel({ onAnalyze, isLoading, progress, activeData, onLoadSample }) {
   const [syllabusText, setSyllabusText] = useState(() => {
     return localStorage.getItem('syllabus_draft_text') || '';
   });
@@ -137,19 +137,40 @@ export default function InputPanel({ onAnalyze, isLoading, progress, activeData 
           <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Syllabus Input & Controls</h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>Upload document, paste text, or drag image screenshot</p>
         </div>
-        <button 
-          type="button"
-          onClick={() => setShowSettings(!showSettings)} 
-          className="btn btn-secondary" 
-          style={{ padding: '8px 12px', fontSize: '0.8rem' }}
-          title="Configure API key and model"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-          Settings
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {onLoadSample && (
+            <button 
+              type="button"
+              onClick={onLoadSample}
+              className="btn btn-secondary"
+              style={{
+                padding: '7px 12px',
+                fontSize: '0.78rem',
+                color: 'var(--color-acid-lime)',
+                borderColor: 'rgba(228, 242, 34, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              title="Instantly load pre-configured Machine Learning (R24) curriculum"
+            >
+              ⚡ Sample ML (R24)
+            </button>
+          )}
+          <button 
+            type="button"
+            onClick={() => setShowSettings(!showSettings)} 
+            className="btn btn-secondary" 
+            style={{ padding: '8px 12px', fontSize: '0.8rem' }}
+            title="Configure API key and model"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Settings
+          </button>
+        </div>
       </div>
 
       {/* Active Persisted Curriculum Notice */}

@@ -14,6 +14,7 @@ import Analytics from './components/Analytics';
 import FacultyChatbot from './components/FacultyChatbot';
 import LoginPage, { DEMO_USERS } from './components/LoginPage';
 import { analyzeSyllabus } from './utils/api';
+import { SAMPLE_ML_CURRICULUM } from './utils/sampleCurriculum';
 
 export default function App() {
   const location = useLocation();
@@ -236,6 +237,38 @@ export default function App() {
   const handleForwardToFlashcards = (topicName) => {
     setInitialFlashcardTopic(topicName);
     navigate('/flashcards');
+  };
+
+  const handleLoadSampleCurriculum = () => {
+    setData(SAMPLE_ML_CURRICULUM);
+    try {
+      localStorage.setItem('syllabus_active_data', JSON.stringify(SAMPLE_ML_CURRICULUM));
+      fetch('/api/syllabus/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: SAMPLE_ML_CURRICULUM })
+      }).catch(() => {});
+    } catch (e) {}
+
+    const newSession = {
+      id: 'session_sample_ml',
+      timestamp: new Date().toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      subject_name: 'Machine Learning (R24 Scheme)',
+      modules_count: SAMPLE_ML_CURRICULUM.modules.length,
+      topics_count: SAMPLE_ML_CURRICULUM.modules.reduce((acc, m) => acc + (m.topics ? m.topics.length : 0), 0),
+      parsedData: SAMPLE_ML_CURRICULUM,
+      sourceSummary: 'Autonomous R24 Engineering Framework'
+    };
+
+    setHistorySessions(prev => {
+      const updated = [newSession, ...prev.filter(s => s.subject_name !== newSession.subject_name)].slice(0, 20);
+      try {
+        localStorage.setItem('syllabus_history_sessions', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    navigate('/graph');
   };
 
   const handleResetAnalysis = () => {
@@ -644,7 +677,7 @@ export default function App() {
             </div>
 
             {/* Centered Parser Control Card */}
-            <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} activeData={data} />
+            <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} activeData={data} onLoadSample={handleLoadSampleCurriculum} />
 
             {/* Error Notice */}
             {error && (
@@ -667,7 +700,7 @@ export default function App() {
           {/* Controls Sidebar */}
           {isSidebarOpen && data && (
             <aside style={{ height: '100%', minHeight: '0' }}>
-              <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} activeData={data} />
+              <InputPanel onAnalyze={handleAnalyze} isLoading={isLoading} progress={statusMessage} activeData={data} onLoadSample={handleLoadSampleCurriculum} />
             </aside>
           )}
 
@@ -857,13 +890,20 @@ export default function App() {
                   <p style={{ color: 'var(--color-fog)', fontSize: '0.88rem', lineHeight: '1.6', margin: 0 }}>
                     Please upload an academic syllabus or select a previously analyzed course from History in the top-left to unlock this page.
                   </p>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button 
                       onClick={() => navigate('/upload')} 
                       className="btn btn-primary"
                       style={{ padding: '8px 18px', fontSize: '0.82rem' }}
                     >
                       📤 Upload Syllabus
+                    </button>
+                    <button 
+                      onClick={handleLoadSampleCurriculum} 
+                      className="btn btn-secondary"
+                      style={{ padding: '8px 18px', fontSize: '0.82rem', color: 'var(--color-acid-lime)', borderColor: 'rgba(228, 242, 34, 0.4)' }}
+                    >
+                      ⚡ Load Sample ML (R24)
                     </button>
                     {historySessions.length > 0 && (
                       <button 
@@ -883,6 +923,7 @@ export default function App() {
                       data={data} 
                       onForwardToLab={handleForwardToLab} 
                       onForwardToFlashcards={handleForwardToFlashcards}
+                      onLoadSample={handleLoadSampleCurriculum}
                     />
                   </div>
                   <div style={{ display: activeTab === 'concepts' ? 'block' : 'none', height: '100%' }}>
@@ -890,6 +931,7 @@ export default function App() {
                       data={data} 
                       onForwardToLab={handleForwardToLab} 
                       onForwardToFlashcards={handleForwardToFlashcards}
+                      onLoadSample={handleLoadSampleCurriculum}
                     />
                   </div>
                   <div style={{ display: activeTab === 'blueprint' ? 'block' : 'none', height: '100%' }}>
