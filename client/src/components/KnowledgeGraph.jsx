@@ -221,11 +221,11 @@ export default function KnowledgeGraph({ data, onForwardToLab, onForwardToFlashc
           </div>
         </div>
 
-        {/* Floating Zoom & Pan Controls */}
+        {/* Floating Zoom & Pan Controls - Positioned on bottom-left to prevent overlap with bottom-right floating actions */}
         <div style={{
           position: 'absolute',
-          bottom: '16px',
-          right: '16px',
+          bottom: '24px',
+          left: '24px',
           display: 'flex',
           flexDirection: 'column',
           gap: '6px',

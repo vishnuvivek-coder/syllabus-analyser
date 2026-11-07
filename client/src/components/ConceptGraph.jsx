@@ -286,11 +286,11 @@ export default function ConceptGraph({ data, onForwardToLab, onForwardToFlashcar
           </div>
         </div>
 
-        {/* Floating Zoom Controls */}
+        {/* Floating Zoom Controls - Positioned on bottom-left to avoid any overlap with bottom-right action buttons */}
         <div style={{
           position: 'absolute',
-          bottom: '20px',
-          right: '20px',
+          bottom: '24px',
+          left: '24px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',

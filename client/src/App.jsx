@@ -645,21 +645,28 @@ export default function App() {
             )}
 
             {/* Navigation Tabs (Tailored per role) - Linear Precision Segmented Control with Dedicated URLs */}
-            <div style={{ 
-              background: 'var(--color-carbon)', 
-              border: '1px solid var(--color-graphite)', 
-              borderRadius: '12px', 
-              padding: '4px', 
-              display: 'flex', 
-              gap: '4px', 
-              flexWrap: 'wrap' 
-            }}>
+            <nav 
+              className="no-scrollbar"
+              aria-label="Role Navigation Tabs"
+              style={{ 
+                background: 'var(--color-carbon)', 
+                border: '1px solid var(--color-graphite)', 
+                borderRadius: '12px', 
+                padding: '4px', 
+                display: 'flex', 
+                gap: '4px', 
+                alignItems: 'center',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                flexWrap: 'nowrap',
+                maxWidth: '100%'
+              }}
+            >
               {user.role === 'faculty' ? (
                 <>
                   <button 
                     onClick={() => navigate('/blueprint')} 
                     className={`tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Design official exam papers with Bloom taxonomy (/blueprint)"
                   >
                     📐 Exam Designer
@@ -667,7 +674,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/variants')} 
                     className={`tab-btn ${activeTab === 'variants' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Generate multi-set exam questions (Set A, B, C) to prevent cheating (/variants)"
                   >
                     🔀 Question Variants
@@ -675,7 +681,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/lab')} 
                     className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Author and curate departmental question repository (/lab)"
                   >
                     🧪 Question Lab
@@ -683,7 +688,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/pastpapers')} 
                     className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Audit previous year papers for syllabus coverage gaps (/pastpapers)"
                   >
                     📑 Paper Auditor
@@ -691,7 +695,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/graph')} 
                     className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="View syllabus prerequisite architecture (/graph)"
                   >
                     🗺️ Knowledge Map
@@ -699,7 +702,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/concepts')} 
                     className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Inspect concept dependency flows (/concepts)"
                   >
                     💡 Concepts
@@ -707,7 +709,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/modules')} 
                     className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Module structure and learning outcomes (/modules)"
                   >
                     📚 Curriculum
@@ -715,7 +716,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/analytics')} 
                     className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Course cognitive depth and Bloom distribution (/analytics)"
                   >
                     📊 Analytics
@@ -723,7 +723,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/evaluator')} 
                     className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Grade and evaluate student answer submissions (/evaluator)"
                   >
                     ✍️ Evaluator
@@ -731,18 +730,10 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/copilot')} 
                     className={`tab-btn ${activeTab === 'copilot' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px', color: 'var(--color-acid-lime)', borderColor: activeTab === 'copilot' ? 'var(--color-acid-lime)' : undefined }}
+                    style={{ color: 'var(--color-acid-lime)', borderColor: activeTab === 'copilot' ? 'var(--color-acid-lime)' : undefined }}
                     title="Faculty Academic Copilot: R24 regulations, marks allotment, timetable & teaching advisor (/copilot)"
                   >
                     🤖 Academic Copilot
-                  </button>
-                  <button 
-                    onClick={() => navigate('/upload')} 
-                    className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
-                    title="Upload or import new syllabus materials (/upload)"
-                  >
-                    📤 Upload
                   </button>
                 </>
               ) : (
@@ -750,7 +741,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/graph')} 
                     className={`tab-btn ${activeTab === 'graph' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Interactive roadmap showing what to learn first (/graph)"
                   >
                     🗺️ Learning Map
@@ -758,7 +748,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/concepts')} 
                     className={`tab-btn ${activeTab === 'concepts' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Concept dependencies and prerequisite paths (/concepts)"
                   >
                     💡 Concept Flow
@@ -766,7 +755,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/flashcards')} 
                     className={`tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Active recall flashcard decks for quick exam revision (/flashcards)"
                   >
                     🗂️ AI Flashcards
@@ -774,7 +762,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/evaluator')} 
                     className={`tab-btn ${activeTab === 'evaluator' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Test your answers and get instant private grading and feedback (/evaluator)"
                   >
                     ✍️ AI Evaluator
@@ -782,7 +769,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/lab')} 
                     className={`tab-btn ${activeTab === 'lab' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Practice solving questions by topic (/lab)"
                   >
                     📝 Practice Lab
@@ -790,7 +776,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/modules')} 
                     className={`tab-btn ${activeTab === 'modules' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Review course modules and key topics (/modules)"
                   >
                     📚 Study Modules
@@ -798,7 +783,6 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/pastpapers')} 
                     className={`tab-btn ${activeTab === 'pastpapers' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Explore recurring previous exam questions (/pastpapers)"
                   >
                     🔄 Past Papers
@@ -806,22 +790,13 @@ export default function App() {
                   <button 
                     onClick={() => navigate('/analytics')} 
                     className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px' }}
                     title="Track syllabus coverage and difficulty distribution (/analytics)"
                   >
                     📊 Coverage
                   </button>
-                  <button 
-                    onClick={() => navigate('/upload')} 
-                    className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
-                    style={{ flex: 1, minWidth: '95px', color: 'var(--color-acid-lime)' }}
-                    title="Upload or import new syllabus materials (/upload)"
-                  >
-                    📤 Upload
-                  </button>
                 </>
               )}
-            </div>
+            </nav>
 
             {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
             <div style={{ flex: '1', minHeight: '0', position: 'relative' }}>

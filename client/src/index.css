@@ -263,11 +263,14 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid transparent;
   font-family: var(--font-sans);
   font-size: 0.78rem;
-  font-weight: 400;
+  font-weight: 450;
   letter-spacing: -0.010em;
   cursor: pointer;
   transition: var(--transition-fast);
   white-space: nowrap;
+  flex: 0 0 auto;
+  min-width: max-content;
+  user-select: none;
 }
 
 .tab-btn:hover {
@@ -281,6 +284,15 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(255, 255, 255, 0.16);
   font-weight: 510;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Neutral Pill Button (Sign up / high emphasis nav) */
