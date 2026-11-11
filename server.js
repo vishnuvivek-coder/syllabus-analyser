@@ -2022,14 +2022,24 @@ RESPONSE STYLE:
         parts: [{ text: `Understood! I have loaded the active regulation framework (${regulationPreset}), timetable data, and curriculum context. How can I assist you with your course delivery, assessment breakdown, or scheduling today?` }]
       });
 
+      let lastRole = 'model';
       recentHistory.forEach(turn => {
         if (turn.role && turn.content) {
-          conversationTurns.push({
-            role: turn.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: turn.content }]
-          });
+          const geminiRole = turn.role === 'assistant' ? 'model' : 'user';
+          if (geminiRole !== lastRole) {
+            conversationTurns.push({
+              role: geminiRole,
+              parts: [{ text: turn.content }]
+            });
+            lastRole = geminiRole;
+          }
         }
       });
+
+      // Ensure strictly alternating sequence before adding user prompt
+      if (lastRole === 'user') {
+        conversationTurns.pop();
+      }
 
       // Append current message
       conversationTurns.push({

@@ -705,7 +705,7 @@ export default function App() {
           )}
 
           {/* Navigation & Workspace Panels */}
-          <main style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', minHeight: '0' }}>
+          <main style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: '0', overflow: 'hidden' }}>
             {/* Error Banner */}
             {error && (
               <div className="glass-panel" style={{ padding: '12px 18px', borderColor: 'var(--color-danger)', backgroundColor: 'rgba(244, 63, 94, 0.08)', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -869,7 +869,7 @@ export default function App() {
             </nav>
 
             {/* Workspace Active Panels (Persistent display wrappers to prevent unmounting and state loss) */}
-            <div style={{ flex: '1', minHeight: '0', height: '100%', position: 'relative' }}>
+            <div style={{ flex: '1', minHeight: '0', position: 'relative', overflow: 'hidden' }}>
               
               {/* Fallback prompt for tabs requiring syllabus data when no syllabus has been parsed yet */}
               {!data && !['lab', 'evaluator', 'copilot'].includes(activeTab) ? (
@@ -1004,8 +1004,6 @@ export default function App() {
                     <div style={{ 
                       display: activeTab === 'copilot' ? 'flex' : 'none', 
                       flexDirection: 'column', 
-                      position: 'absolute', 
-                      inset: 0, 
                       minHeight: '0', 
                       height: '100%', 
                       width: '100%', 

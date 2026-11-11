@@ -399,7 +399,11 @@ h1, h2, h3, h4, h5, h6 {
   grid-template-columns: 360px 1fr;
   gap: 16px;
   padding: 16px;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 56px);
+  max-height: calc(100vh - 56px);
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {

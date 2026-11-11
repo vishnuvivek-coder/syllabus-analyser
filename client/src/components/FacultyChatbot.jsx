@@ -152,7 +152,7 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
   const [isDraggingReg, setIsDraggingReg] = useState(false);
   const [isDraggingTT, setIsDraggingTT] = useState(false);
 
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const regFileInputRef = useRef(null);
   const ttFileInputRef = useRef(null);
 
@@ -243,9 +243,14 @@ You can also click **"📂 Regulations & Timetable Hub"** at the top right to up
     restoreServerHubState();
   }, []);
 
-  // Scroll chat to bottom on new message
+  // Scroll chat to bottom on new message (ONLY within the messages container, never scrolling the window/ancestors)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages, isLoading]);
 
   // Determine active regulation text
@@ -637,16 +642,19 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
       </div>
 
       {/* Main Conversation Stream */}
-      <div style={{
-        flex: '1',
-        minHeight: '0',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        padding: '20px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '18px'
-      }}>
+      <div 
+        ref={messagesContainerRef}
+        style={{
+          flex: '1',
+          minHeight: '0',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '20px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px'
+        }}
+      >
         {messages.map((msg) => {
           const isUser = msg.role === 'user';
           return (
@@ -664,11 +672,11 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                marginBottom: '5px',
+                marginBottom: '6px',
                 padding: '0 4px'
               }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: '510', color: isUser ? 'var(--color-mist)' : 'var(--color-acid-lime)' }}>
-                  {isUser ? 'You (Faculty)' : 'Academic Copilot AI'}
+                <span style={{ fontSize: '0.74rem', fontWeight: '600', color: isUser ? 'var(--color-acid-lime)' : 'var(--color-paper)' }}>
+                  {isUser ? '👤 You (Faculty Question)' : '🤖 Academic Copilot AI'}
                 </span>
                 <span style={{ fontSize: '0.64rem', color: 'var(--color-fog)' }}>
                   {msg.timestamp}
@@ -695,15 +703,15 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
               {/* Message Bubble */}
               <div
                 style={{
-                  maxWidth: isUser ? '75%' : '88%',
+                  maxWidth: isUser ? '82%' : '90%',
                   padding: '14px 18px',
                   borderRadius: isUser ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                  background: isUser ? 'var(--color-obsidian)' : 'var(--color-carbon)',
-                  border: isUser ? '1px solid var(--color-graphite)' : '1px solid var(--color-graphite)',
+                  background: isUser ? 'rgba(228, 242, 34, 0.08)' : 'var(--color-obsidian)',
+                  border: isUser ? '1px solid rgba(228, 242, 34, 0.35)' : '1px solid var(--color-graphite)',
                   color: 'var(--color-paper)',
                   fontSize: '0.88rem',
                   lineHeight: '1.6',
-                  boxShadow: isUser ? 'none' : '0 4px 12px rgba(0,0,0,0.25)',
+                  boxShadow: isUser ? '0 2px 8px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.25)',
                   wordBreak: 'break-word',
                   overflowWrap: 'anywhere'
                 }}
@@ -737,8 +745,6 @@ ${result.summary || 'Document extracted and active in Copilot.'}`,
             </div>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Chat Input Bar */}
