@@ -119,6 +119,57 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
 
   const questionRef = useRef(null);
 
+  // Evaluator Diagnostic Feedback & Provenance
+  const [evaluatorProfile, setEvaluatorProfile] = useState(() => {
+    try {
+      const local = localStorage.getItem('syllabus_evaluator_diagnostic_profile');
+      return local ? JSON.parse(local) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [remedialApplied, setRemedialApplied] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/evaluator/diagnostic-profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.profile) {
+          setEvaluatorProfile(data.profile);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleApplyEvaluatorRecommendations = () => {
+    if (!evaluatorProfile) return;
+    const diff = evaluatorProfile.suggested_difficulty_distribution || { easy: 50, medium: 35, hard: 15 };
+    const bloom = evaluatorProfile.suggested_bloom_distribution || { remember_understand: 45, apply_analyze: 40, evaluate_create: 15 };
+
+    setDiffEasy(diff.easy);
+    setDiffMed(diff.medium);
+    setDiffHard(diff.hard);
+
+    setBloomRemember(bloom.remember_understand);
+    setBloomApply(bloom.apply_analyze);
+    setBloomCreate(bloom.evaluate_create);
+
+    if (Array.isArray(evaluatorProfile.recommended_question_types) && evaluatorProfile.recommended_question_types.length > 0) {
+      setQuestionTypes(prev => Array.from(new Set([...prev, ...evaluatorProfile.recommended_question_types])));
+    }
+
+    setRemedialApplied(true);
+    setTimeout(() => setRemedialApplied(false), 5000);
+  };
+
+  const handleClearEvaluatorProfile = () => {
+    try {
+      localStorage.removeItem('syllabus_evaluator_diagnostic_profile');
+    } catch (e) {}
+    fetch('/api/evaluator/diagnostic-profile', { method: 'DELETE' }).catch(() => {});
+    setEvaluatorProfile(null);
+  };
+
   // Initialize module weights equally when syllabus data loads
   useEffect(() => {
     if (syllabusData && syllabusData.modules) {
@@ -535,6 +586,152 @@ export default function BlueprintDesigner({ syllabusData, apiKey, modelName, onS
         <h3 style={{ fontSize: '1.05rem', fontWeight: '700' }}>
           Blueprint Constraints
         </h3>
+
+        {/* EVALUATOR DIAGNOSTIC FEEDBACK & PROVENANCE VALIDATION CARD */}
+        {evaluatorProfile && (
+          <div style={{
+            padding: '16px',
+            borderRadius: '10px',
+            background: 'var(--color-obsidian)',
+            border: '1px solid var(--color-acid-lime)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            {/* Provenance Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: 'rgba(123, 174, 127, 0.15)',
+                    border: '1px solid rgba(123, 174, 127, 0.35)',
+                    fontSize: '0.68rem',
+                    color: 'var(--color-pulse-green)',
+                    fontWeight: '600'
+                  }}>
+                    ✓ Verified Diagnostic Provenance
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--color-fog)' }}>
+                    Token: <strong style={{ color: 'var(--color-paper)' }}>{evaluatorProfile.diagnostic_id}</strong>
+                  </span>
+                </div>
+                <h4 style={{ fontSize: '0.88rem', color: 'var(--color-paper)', margin: 0, fontWeight: '600' }}>
+                  📊 Paper Evaluator Diagnostic & Remedial Calibration
+                </h4>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleClearEvaluatorProfile}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-fog)',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  padding: '2px 6px'
+                }}
+                title="Disconnect evaluator profile"
+              >
+                ✕ Disconnect
+              </button>
+            </div>
+
+            {/* Evaluated Score & Performance Banner */}
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: '6px',
+              background: 'var(--color-carbon)',
+              border: '1px solid var(--color-smoke)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              gap: '8px',
+              fontSize: '0.74rem'
+            }}>
+              <div>
+                <span style={{ color: 'var(--color-fog)', display: 'block', fontSize: '0.66rem' }}>Evaluated Target</span>
+                <strong style={{ color: 'var(--color-paper)', wordBreak: 'break-word' }}>{evaluatorProfile.topic || 'Student Submission'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--color-fog)', display: 'block', fontSize: '0.66rem' }}>Student Score</span>
+                <strong style={{ color: evaluatorProfile.percentage >= 60 ? 'var(--color-pulse-green)' : 'var(--color-coral-red)' }}>
+                  {evaluatorProfile.student_score} / {evaluatorProfile.max_marks} ({evaluatorProfile.percentage}% • Grade {evaluatorProfile.overall_grade})
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--color-fog)', display: 'block', fontSize: '0.66rem' }}>Performance Tier</span>
+                <strong style={{ color: 'var(--color-acid-lime)' }}>
+                  {evaluatorProfile.performance_tier || (evaluatorProfile.percentage < 60 ? 'Needs Remedial Support' : 'Proficient')}
+                </strong>
+              </div>
+            </div>
+
+            {/* Weak Dimensions / Identified Loss Areas */}
+            {evaluatorProfile.weakest_dimensions?.length > 0 && (
+              <div style={{ fontSize: '0.74rem', color: 'var(--color-mist)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ color: '#fca5a5', fontWeight: '600' }}>⚠️ Low Scoring Dimensions:</span>
+                {evaluatorProfile.weakest_dimensions.map((dim, i) => (
+                  <span key={i} className="badge" style={{ fontSize: '0.66rem', borderColor: 'rgba(244, 63, 94, 0.4)', color: '#fca5a5', background: 'rgba(244, 63, 94, 0.1)' }}>
+                    {dim}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Remedial Recommendation Text */}
+            <div style={{ fontSize: '0.76rem', color: 'var(--color-mist)', lineHeight: 1.4 }}>
+              💡 <strong style={{ color: 'var(--color-paper)' }}>AI Remedial Calibration:</strong> {evaluatorProfile.remedial_strategy || 'Calibrate paper hardness towards foundational and scaffolded questions to boost marks in weak areas.'}
+            </div>
+
+            {/* Action Button: Apply Recommendations */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={handleApplyEvaluatorRecommendations}
+                className="btn btn-primary"
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  fontSize: '0.76rem',
+                  background: 'var(--color-acid-lime)',
+                  color: '#08090a',
+                  fontWeight: '600',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>⚡</span>
+                <span>Apply Evaluator Recommendations to Blueprint</span>
+              </button>
+            </div>
+
+            {remedialApplied && (
+              <div style={{
+                padding: '6px 10px',
+                borderRadius: '4px',
+                background: 'rgba(123, 174, 127, 0.15)',
+                border: '1px solid rgba(123, 174, 127, 0.4)',
+                fontSize: '0.72rem',
+                color: 'var(--color-pulse-green)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span>✓</span>
+                <span>Difficulty calibrated ({evaluatorProfile.suggested_difficulty_distribution?.easy || 50}% Easy / {evaluatorProfile.suggested_difficulty_distribution?.medium || 35}% Med / {evaluatorProfile.suggested_difficulty_distribution?.hard || 15}% Hard) and question types updated!</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Saved Blueprint Presets Toolbar */}
         <div style={{ padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>

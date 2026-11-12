@@ -971,6 +971,7 @@ export default function App() {
                       apiKey={localStorage.getItem('gemini_api_key')}
                       modelName={localStorage.getItem('model_name') || 'gemini-3.6-flash'}
                       savedQuestions={savedQuestions}
+                      onNavigate={(tab) => navigate('/' + tab)}
                     />
                   </div>
                   <div style={{ display: activeTab === 'pastpapers' ? 'block' : 'none', height: '100%' }}>

@@ -18,6 +18,27 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 const SYLLABUS_STORAGE_FILE = path.join(DATA_DIR, 'active_syllabus.json');
 const FACULTY_HUB_FILE = path.join(DATA_DIR, 'faculty_hub.json');
+const EVALUATOR_PROFILE_FILE = path.join(DATA_DIR, 'evaluator_profile.json');
+
+function loadEvaluatorProfile() {
+  try {
+    if (fs.existsSync(EVALUATOR_PROFILE_FILE)) {
+      const raw = fs.readFileSync(EVALUATOR_PROFILE_FILE, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Failed to read evaluator profile from disk:', err);
+  }
+  return null;
+}
+
+function saveEvaluatorProfile(data) {
+  try {
+    fs.writeFileSync(EVALUATOR_PROFILE_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save evaluator profile to disk:', err);
+  }
+}
 
 function saveActiveSyllabus(data) {
   try {
@@ -1419,6 +1440,60 @@ Format your response strictly as JSON with this schema:
   "percentage": 75,
   "overall_grade": "A" | "B" | "C" | "D" | "F",
   "marks_awarded_summary": "Comprehensive 2-4 sentence explanation detailing EXACTLY why the student was awarded 7.5 out of ${totalMarks} marks, citing which steps earned marks and what specific omissions or errors resulted in deductions.",
+  "paper_corrections": [
+    {
+      "criterion_type": "definition" | "diagram" | "derivation" | "application" | "calculation" | "general",
+      "status": "correct" | "incorrect" | "omitted",
+      "student_work": "Exact excerpt of what student wrote, calculated, or drew (or omitted)",
+      "model_correction": "Precise authoritative model correction, standard formula, or required schematic detail",
+      "marks_impact": "+2.5" | "-1.5" | "0.0",
+      "reason": "Explicit explanation of why marks were granted or deducted"
+    }
+  ],
+  "rubric_breakdown": {
+    "definitions_theory": {
+      "criterion": "Definitions & Theoretical Concepts",
+      "score": 2.5,
+      "max": 2.5,
+      "status": "Full Marks",
+      "reason_for_marks": "Explicit explanation for definitions score",
+      "feedback": "Constructive feedback on theoretical mastery"
+    },
+    "diagrams_visuals": {
+      "criterion": "Diagrams, Schematics & Visuals",
+      "score": 1.0,
+      "max": 2.5,
+      "status": "Partial Credit",
+      "reason_for_marks": "Explicit explanation for diagram score, noting missing labels or clarity",
+      "feedback": "Constructive feedback on visual modeling"
+    },
+    "mathematical_derivations": {
+      "criterion": "Mathematical Derivations & Calculations",
+      "score": 2.5,
+      "max": 3.0,
+      "status": "Partial Credit",
+      "reason_for_marks": "Explicit explanation for math derivation and numerical calculation steps",
+      "feedback": "Constructive feedback on step rigor"
+    },
+    "practical_applications": {
+      "criterion": "Practical Applications & Real-World Context",
+      "score": 1.5,
+      "max": 2.0,
+      "status": "Partial Credit",
+      "reason_for_marks": "Explicit explanation for applied context and edge-case handling",
+      "feedback": "Constructive feedback on application grasp"
+    }
+  },
+  "exam_designer_feedback": {
+    "diagnostic_id": "EVAL-X9A2",
+    "performance_tier": "Needs Remedial Support" | "Foundational" | "Proficient" | "Mastery",
+    "weakest_dimensions": ["diagrams_visuals", "mathematical_derivations"],
+    "strongest_dimensions": ["definitions_theory"],
+    "suggested_difficulty_distribution": { "easy": 50, "medium": 35, "hard": 15 },
+    "suggested_bloom_distribution": { "remember_understand": 45, "apply_analyze": 40, "evaluate_create": 15 },
+    "recommended_question_types": ["Short Answer", "Case Study", "Mathematical Proof"],
+    "remedial_strategy": "Actionable guidance for Exam Designer to boost marks with targeted questions"
+  },
   "marks_breakdown": {
     "points_awarded": [
       {
@@ -1443,22 +1518,6 @@ Format your response strictly as JSON with this schema:
       "status": "Full Marks",
       "reason_for_marks": "Explicit justification for marks given on this section",
       "feedback": "Constructive feedback"
-    },
-    {
-      "criterion": "Mathematical Derivation & Calculation",
-      "score": 4.5,
-      "max": 5.0,
-      "status": "Partial Credit",
-      "reason_for_marks": "Explicit justification for marks given and partial credit deduction",
-      "feedback": "Constructive feedback"
-    },
-    {
-      "criterion": "Final Answer & Interpretation",
-      "score": 0.0,
-      "max": 2.0,
-      "status": "No Marks",
-      "reason_for_marks": "Explicit justification of why no marks were awarded for final answer",
-      "feedback": "Constructive feedback"
     }
   ],
   "summary": "2-3 sentence overview of student performance and conceptual grasp",
@@ -1468,14 +1527,7 @@ Format your response strictly as JSON with this schema:
     "legibility_grade": "Excellent" | "Good" | "Fair" | "Challenging to Read",
     "stroke_clarity_assessment": "Clear cursive script with distinct superscripts and good line spacing.",
     "transcribed_text": "Full word-for-word transcription of what the student wrote on the answer sheet, preserving step structure.",
-    "detected_equations": [
-      {
-        "raw_visual": "P(Y=1) = 6/10 = 0.6",
-        "latex": "P(Y=1) = \\\\frac{6}{10} = 0.6",
-        "is_correctly_written": true,
-        "note": "Correctly computed prior probability"
-      }
-    ],
+    "detected_equations": [],
     "detected_diagrams": [],
     "presentation_tips": "Suggestions to improve answer sheet layout, margins, and handwriting neatness for examiners."
   },
@@ -1516,6 +1568,30 @@ ${answerText || 'Please read the attached handwritten/typed answer image.'}
     } catch (parseErr) {
       console.error('Failed to parse answer evaluator response as JSON:', responseText);
       throw new Error('Answer evaluator returned invalid JSON formatting. Please try again.');
+    }
+
+    if (parsedData) {
+      const diagProfile = {
+        ...(parsedData.exam_designer_feedback || {}),
+        diagnostic_id: parsedData.exam_designer_feedback?.diagnostic_id || ('EVAL-' + Date.now().toString(36).toUpperCase()),
+        topic: parsedData.exam_designer_feedback?.topic || (questionText.length > 50 ? questionText.slice(0, 50) + '...' : questionText),
+        student_score: parsedData.total_score,
+        max_marks: parsedData.max_marks || totalMarks,
+        percentage: parsedData.percentage,
+        overall_grade: parsedData.overall_grade,
+        evaluated_at: new Date().toISOString(),
+        question_text: questionText,
+        marks_awarded_summary: parsedData.marks_awarded_summary,
+        rubric_breakdown: parsedData.rubric_breakdown,
+        weakest_dimensions: parsedData.exam_designer_feedback?.weakest_dimensions || [],
+        strongest_dimensions: parsedData.exam_designer_feedback?.strongest_dimensions || [],
+        suggested_difficulty_distribution: parsedData.exam_designer_feedback?.suggested_difficulty_distribution || { easy: 50, medium: 35, hard: 15 },
+        suggested_bloom_distribution: parsedData.exam_designer_feedback?.suggested_bloom_distribution || { remember_understand: 45, apply_analyze: 40, evaluate_create: 15 },
+        recommended_question_types: parsedData.exam_designer_feedback?.recommended_question_types || ['Short Answer', 'Case Study', 'Mathematical Proof'],
+        remedial_strategy: parsedData.exam_designer_feedback?.remedial_strategy || 'Calibrate paper hardness towards foundational and scaffolded questions to boost marks in weak areas.'
+      };
+      parsedData.exam_designer_feedback = diagProfile;
+      saveEvaluatorProfile(diagProfile);
     }
 
     res.json(parsedData);
@@ -1915,6 +1991,33 @@ app.post('/api/faculty-copilot/hub-state', express.json({ limit: '50mb' }), (req
     };
     saveFacultyHub(updatedState);
     res.json({ success: true, state: updatedState });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Evaluator Diagnostic Profile Persistence Endpoints (Feedback Loop to Exam Designer)
+app.get('/api/evaluator/diagnostic-profile', (req, res) => {
+  const profile = loadEvaluatorProfile();
+  res.json({ profile });
+});
+
+app.post('/api/evaluator/diagnostic-profile', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const profile = req.body.profile || req.body;
+    saveEvaluatorProfile(profile);
+    res.json({ success: true, profile });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/evaluator/diagnostic-profile', (req, res) => {
+  try {
+    if (fs.existsSync(EVALUATOR_PROFILE_FILE)) {
+      fs.unlinkSync(EVALUATOR_PROFILE_FILE);
+    }
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
